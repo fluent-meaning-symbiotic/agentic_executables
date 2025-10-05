@@ -1,0 +1,164 @@
+project:
+  name: prompts_framework_mcp
+  description: MCP server exposing @prompts_framework/ tools and resources via dart_mcp.
+  repo_root: /Users/antonio/xs/agentic_executables
+  references:
+    - https://pub.dev/packages/dart_mcp
+
+goals:
+  - Provide four tools: bootstrap_ae, improve_ae_bootstrap, install_library_as_ae, uninstall_library_as_ae
+  - Expose resources: prompts_framework/ae_context.md, prompts_framework/ae_boostrap.md, prompts_framework/ae_use.md
+  - Provide templates, validators, and idempotent install/uninstall with manifest
+
+protocol:
+  transport: stdio
+  base_utilities:
+    ping: true
+    progress: true
+    cancellation: false
+  server_capabilities:
+    tools: true
+    resources: true
+    prompts: true
+  client_capabilities:
+    sampling: optional
+
+defaults:
+  placement: ae_use
+  output_dir: ae_use
+  manifest_filename: .ae_manifest.yaml
+  package_dir: prompts_framework_mcp
+
+package_structure:
+  - pubspec.yaml
+  - bin/prompts_framework_mcp.dart
+  - lib/server/prompts_framework_server.dart
+  - lib/tools/bootstrap_ae.dart
+  - lib/tools/improve_ae_bootstrap.dart
+  - lib/tools/install_library_as_ae.dart
+  - lib/tools/uninstall_library_as_ae.dart
+  - lib/resources/ (resource helpers if needed)
+  - templates/
+  - test/
+  - README.md
+
+tools:
+  bootstrap_ae:
+    description: Generate AE scaffolding (install/update/uninstall/usage) from templates and framework docs.
+    input_schema:
+      type: object
+      required: [root_path, library_name]
+      properties:
+        root_path: { type: string }
+        library_name: { type: string }
+        output_dir: { type: string, default: ae_use }
+        overwrite: { type: boolean, default: false }
+    output:
+      created_files: [string]
+      warnings: [string]
+  improve_ae_bootstrap:
+    description: Improve AE bootstrap files using guidelines; optionally leverage client Sampling.
+    input_schema:
+      type: object
+      required: [root_path]
+      properties:
+        root_path: { type: string }
+        targets: { type: array, items: { type: string } }
+        style_guidelines: { type: string }
+        use_client_sampling: { type: boolean, default: true }
+    output:
+      updated_files: [string]
+      diff_preview: string
+  install_library_as_ae:
+    description: Install AE files into a project with validation and manifest tracking.
+    input_schema:
+      type: object
+      required: [project_path]
+      properties:
+        project_path: { type: string }
+        ae_source_dir: { type: string }
+        placement: { enum: [ae_use, .cursor/rules, custom], default: ae_use }
+        custom_placement_dir: { type: string }
+        validate: { type: boolean, default: true }
+    output:
+      installed_files: [string]
+      validation:
+        passed: boolean
+        messages: [string]
+  uninstall_library_as_ae:
+    description: Uninstall AE files using manifest; supports dry-run.
+    input_schema:
+      type: object
+      required: [project_path]
+      properties:
+        project_path: { type: string }
+        placement: { enum: [ae_use, .cursor/rules, custom], default: ae_use }
+        custom_placement_dir: { type: string }
+        dry_run: { type: boolean, default: false }
+    output:
+      removed_files: [string]
+      leftovers: [string]
+
+resources:
+  - uri: resource://prompts_framework/ae_context.md
+    path: prompts_framework/ae_context.md
+  - uri: resource://prompts_framework/ae_boostrap.md
+    path: prompts_framework/ae_boostrap.md
+  - uri: resource://prompts_framework/ae_use.md
+    path: prompts_framework/ae_use.md
+
+templates:
+  files:
+    - templates/ae_install.md.hbs
+    - templates/ae_uninstall.md.hbs
+    - templates/ae_update.md.hbs
+    - templates/library_usage.mdc.hbs
+    - templates/.ae_manifest.yaml.hbs
+  params:
+    - library_name
+    - placement_path
+    - style
+    - validation_hooks
+
+validation:
+  install:
+    required_sections:
+      [Installation, Configuration, Integration, Validation, Rollback]
+  uninstall:
+    required_sections: [Reverse integrations, Cleanup, Restoration]
+  update:
+    required_sections:
+      [Version compare, Backup, Migration, Re-Integrate, Rollback]
+  cross_links: true
+  idempotent_install_uninstall: true
+
+milestones:
+  - name: M1 - Skeleton
+    deliverables:
+      - Package scaffold
+      - YAML schemas embedded
+      - Resources wired (file URIs)
+      - bootstrap_ae stub
+  - name: M2 - Install/Uninstall
+    deliverables:
+      - Manifest support
+      - Validators
+      - Idempotent operations
+  - name: M3 - Improve with Sampling
+    deliverables:
+      - Client Sampling integration
+      - Diff previews
+  - name: M4 - Tests & Docs
+    deliverables:
+      - Golden tests
+      - README and examples
+
+risks:
+  - dart_mcp_api_churn: mitigate by isolating MCP calls behind helpers
+  - placement_conflicts: mitigate via manifest and dry-run
+  - editor_variance: prefer stdio and simple schemas
+
+impl_notes:
+  - Keep handlers pure and side-effect-scoped to FS ops
+  - Use YAML for schemas and manifest
+  - Avoid destructive actions without explicit flags
