@@ -1,0 +1,25 @@
+name: ae_mcp_server
+description: MCP server for Agentic Executable (AE) framework management
+version: 0.1.0
+homepage: https://github.com/your-org/ae_mcp_server
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  async: ^2.11.0
+  collection: ^1.17.0
+  json_rpc_2: ^4.0.0
+  meta: ^1.11.0
+  stream_channel: ^2.1.1
+  stream_transform: ^2.0.0
+  path: ^1.8.3
+  yaml: ^3.1.2
+  args: ^2.4.2
+
+dev_dependencies:
+  test: ^1.24.0
+  lints: ^3.0.0
+
+executables:
+  ae_mcp_server:
