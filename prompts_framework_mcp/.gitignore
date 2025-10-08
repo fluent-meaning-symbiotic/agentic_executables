@@ -1,0 +1,30 @@
+# Dart
+.dart_tool/
+.packages
+build/
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Compiled
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test
+coverage/
+.test_coverage/
+
+# Docker
+.dockerignore
+
+# Misc
+.DS_Store
+*.log
+

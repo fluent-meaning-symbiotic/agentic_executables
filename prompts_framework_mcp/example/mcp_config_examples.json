@@ -1,0 +1,141 @@
+{
+  "_comment": "Example MCP configuration files for various clients",
+
+  "claude_desktop": {
+    "_comment": "For Claude Desktop on macOS/Linux",
+    "_location": "~/Library/Application Support/Claude/claude_desktop_config.json",
+    "mcpServers": {
+      "prompts-framework": {
+        "command": "/absolute/path/to/prompts_framework_mcp/build/server"
+      }
+    }
+  },
+
+  "claude_desktop_with_dart": {
+    "_comment": "Alternative: Run with dart (development mode)",
+    "mcpServers": {
+      "prompts-framework": {
+        "command": "dart",
+        "args": [
+          "run",
+          "/absolute/path/to/prompts_framework_mcp/bin/prompts_framework_mcp_server.dart"
+        ]
+      }
+    }
+  },
+
+  "claude_desktop_docker": {
+    "_comment": "Run via Docker container",
+    "mcpServers": {
+      "prompts-framework": {
+        "command": "docker",
+        "args": ["run", "-i", "prompts-framework-mcp:latest"]
+      }
+    }
+  },
+
+  "generic_mcp_client": {
+    "_comment": "Generic configuration for any MCP client",
+    "server_config": {
+      "name": "prompts-framework",
+      "transport": "stdio",
+      "command": "/path/to/build/server",
+      "args": [],
+      "env": {}
+    }
+  },
+
+  "vscode_extension": {
+    "_comment": "For VS Code MCP extensions",
+    "mcp.servers": {
+      "prompts-framework": {
+        "type": "stdio",
+        "command": "/path/to/build/server"
+      }
+    }
+  },
+
+  "cursor_ide": {
+    "_comment": "For Cursor IDE with MCP support",
+    "mcp": {
+      "servers": {
+        "prompts-framework": {
+          "command": "/path/to/build/server",
+          "transport": "stdio"
+        }
+      }
+    }
+  },
+
+  "programmatic_dart": {
+    "_comment": "Example code for programmatic access",
+    "_code": "import 'package:dart_mcp/client.dart';\nimport 'package:dart_mcp/stdio.dart';\n\nvoid main() async {\n  final client = MCPClient();\n  final connection = await client.connectStdioServer(\n    '/path/to/build/server',\n    [],\n  );\n  await connection.initialize(...);\n  await connection.notifyInitialized();\n  final result = await connection.callTool(\n    'get_ae_instructions',\n    {'context_type': 'library', 'action': 'bootstrap'},\n  );\n  print(result);\n}"
+  },
+
+  "environment_variables": {
+    "_comment": "Optional environment variables",
+    "env": {
+      "MCP_LOG_LEVEL": "info",
+      "PROMPTS_FRAMEWORK_RESOURCES": "/custom/path/to/resources"
+    }
+  },
+
+  "cloud_deployment": {
+    "_comment": "Example for cloud deployment",
+    "kubernetes": {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "prompts-framework-mcp"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "mcp-server",
+            "image": "prompts-framework-mcp:latest",
+            "stdin": true,
+            "tty": true
+          }
+        ]
+      }
+    },
+    "docker_compose": {
+      "version": "3.8",
+      "services": {
+        "mcp-server": {
+          "image": "prompts-framework-mcp:latest",
+          "stdin_open": true,
+          "tty": true
+        }
+      }
+    }
+  },
+
+  "testing": {
+    "_comment": "Configuration for testing",
+    "test_client": {
+      "server_command": "/path/to/build/server",
+      "test_tools": [
+        {
+          "tool": "get_ae_instructions",
+          "args": { "context_type": "library", "action": "bootstrap" }
+        },
+        {
+          "tool": "verify_ae_implementation",
+          "args": {
+            "context_type": "library",
+            "action": "bootstrap",
+            "description": "Test implementation"
+          }
+        },
+        {
+          "tool": "evaluate_ae_compliance",
+          "args": {
+            "implementation_details": "Test details",
+            "context_type": "library"
+          }
+        }
+      ]
+    }
+  }
+}
