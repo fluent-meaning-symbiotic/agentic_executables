@@ -20,7 +20,6 @@ void main() {
       final result = tool.execute({
         'context_type': 'invalid',
         'action': 'bootstrap',
-        'description': 'Test',
       });
       expect(result['success'], false);
       expect(result['error'], contains('Invalid context_type'));
@@ -30,60 +29,157 @@ void main() {
       final result = tool.execute({
         'context_type': 'library',
         'action': 'invalid',
-        'description': 'Test',
       });
       expect(result['success'], false);
       expect(result['error'], contains('Invalid action'));
     });
 
-    test('should generate checklist for library bootstrap', () {
+    test('should pass verification for compliant library bootstrap', () {
       final result = tool.execute({
         'context_type': 'library',
         'action': 'bootstrap',
-        'description': 'Bootstrapping AE for axios library',
+        'files_modified': [
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': 400,
+            'sections': ['Analysis', 'Generation', 'Validation']
+          },
+          {'path': 'ae_install.md', 'loc': 350, 'sections': []},
+          {'path': 'ae_uninstall.md', 'loc': 200, 'sections': []},
+          {'path': 'ae_update.md', 'loc': 250, 'sections': []},
+          {'path': 'ae_use.md', 'loc': 300, 'sections': []},
+        ],
+        'checklist_completed': {
+          'modularity': true,
+          'contextual_awareness': true,
+          'agent_empowerment': true,
+          'validation': true,
+          'integration': true,
+          'analysis_guidance': true,
+          'file_generation_rules': true,
+          'abstraction': true,
+        },
       });
+
       expect(result['success'], true);
-      expect(result['verification_checklist'], isA<List>());
-
-      final checklist = result['verification_checklist'] as List;
-      expect(checklist.length, greaterThan(0));
-
-      // Should include core principles
-      final principles =
-          checklist.map((c) => c['principle'] as String).toList();
-      expect(principles, contains('Modularity'));
-      expect(principles, contains('Agent Empowerment'));
-      expect(principles, contains('Analysis')); // Bootstrap-specific
+      expect(result['overall_status'], 'PASS');
+      final verification = result['verification'] as Map;
+      expect(verification['overall_pass'], true);
+      expect(verification['checks'], isA<List>());
     });
 
-    test('should generate checklist for project install', () {
+    test('should fail verification for missing files', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_modified': [
+          {'path': 'ae_bootstrap.md', 'loc': 400, 'sections': []},
+        ],
+        'checklist_completed': {
+          'modularity': true,
+          'contextual_awareness': true,
+          'agent_empowerment': true,
+        },
+      });
+
+      expect(result['success'], true);
+      expect(result['overall_status'], 'FAIL');
+      final verification = result['verification'] as Map;
+      expect(verification['overall_pass'], false);
+      expect(verification['missing_items'], isNotEmpty);
+    });
+
+    test('should warn about high LOC files', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_modified': [
+          {'path': 'ae_bootstrap.md', 'loc': 600, 'sections': []},
+          {'path': 'ae_install.md', 'loc': 550, 'sections': []},
+          {'path': 'ae_uninstall.md', 'loc': 520, 'sections': []},
+          {'path': 'ae_update.md', 'loc': 510, 'sections': []},
+          {'path': 'ae_use.md', 'loc': 505, 'sections': []},
+        ],
+        'checklist_completed': {
+          'modularity': true,
+          'contextual_awareness': true,
+          'agent_empowerment': true,
+          'validation': true,
+          'integration': true,
+          'analysis_guidance': true,
+          'file_generation_rules': true,
+          'abstraction': true,
+        },
+      });
+
+      final verification = result['verification'] as Map;
+      expect(verification['warnings'], isNotEmpty);
+    });
+
+    test('should fail verification for excessive LOC', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_modified': [
+          {'path': 'ae_bootstrap.md', 'loc': 900, 'sections': []},
+          {'path': 'ae_install.md', 'loc': 350, 'sections': []},
+          {'path': 'ae_uninstall.md', 'loc': 200, 'sections': []},
+          {'path': 'ae_update.md', 'loc': 250, 'sections': []},
+          {'path': 'ae_use.md', 'loc': 300, 'sections': []},
+        ],
+        'checklist_completed': {
+          'modularity': true,
+          'contextual_awareness': true,
+          'agent_empowerment': true,
+          'validation': true,
+          'integration': true,
+          'analysis_guidance': true,
+          'file_generation_rules': true,
+          'abstraction': true,
+        },
+      });
+
+      expect(result['overall_status'], 'FAIL');
+      final verification = result['verification'] as Map;
+      expect(verification['overall_pass'], false);
+    });
+
+    test('should verify required checklist items for install', () {
       final result = tool.execute({
         'context_type': 'project',
         'action': 'install',
-        'description': 'Installing library as AE',
+        'files_modified': [],
+        'checklist_completed': {
+          'modularity': true,
+          'contextual_awareness': true,
+          'agent_empowerment': true,
+          'validation': true,
+          'integration': true,
+        },
       });
-      expect(result['success'], true);
 
-      final checklist = result['verification_checklist'] as List;
-      final principles =
-          checklist.map((c) => c['principle'] as String).toList();
-      expect(principles, contains('Validation'));
-      expect(principles, contains('Integration'));
+      expect(result['success'], true);
+      final verification = result['verification'] as Map;
+      final checks = verification['checks'] as List;
+
+      final checkNames = checks.map((c) => c['item']).toList();
+      expect(checkNames.any((n) => n.toString().contains('Modularity')), true);
+      expect(checkNames.any((n) => n.toString().contains('Validation')), true);
+      expect(checkNames.any((n) => n.toString().contains('Integration')), true);
     });
 
-    test('should include reversibility check for uninstall', () {
+    test('should handle JSON string inputs', () {
       final result = tool.execute({
-        'context_type': 'project',
-        'action': 'uninstall',
-        'description': 'Uninstalling library',
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_modified':
+            '[{"path": "ae_bootstrap.md", "loc": 400}, {"path": "ae_install.md", "loc": 350}, {"path": "ae_uninstall.md", "loc": 200}, {"path": "ae_update.md", "loc": 250}, {"path": "ae_use.md", "loc": 300}]',
+        'checklist_completed':
+            '{"modularity": true, "contextual_awareness": true, "agent_empowerment": true, "validation": true, "integration": true, "analysis_guidance": true, "file_generation_rules": true, "abstraction": true}',
       });
-      expect(result['success'], true);
 
-      final checklist = result['verification_checklist'] as List;
-      final principles =
-          checklist.map((c) => c['principle'] as String).toList();
-      expect(principles, contains('Reversibility'));
-      expect(principles, contains('Cleanup'));
+      expect(result['success'], true);
+      expect(result['overall_status'], 'PASS');
     });
   });
 
@@ -97,81 +193,231 @@ void main() {
     test('should validate required parameters', () {
       final result = tool.execute({});
       expect(result['success'], false);
-      expect(result['error'], contains('implementation_details'));
+      expect(result['error'], contains('context_type'));
     });
 
     test('should validate context_type', () {
       final result = tool.execute({
-        'implementation_details': 'Test implementation',
         'context_type': 'invalid',
+        'action': 'bootstrap',
       });
       expect(result['success'], false);
       expect(result['error'], contains('Invalid context_type'));
     });
 
-    test('should evaluate implementation with good indicators', () {
+    test('should validate action parameter', () {
       final result = tool.execute({
-        'implementation_details': '''
-          Created modular, step-by-step instructions for autonomous AI agents.
-          Included validation checks at each step to ensure reliability.
-          Provided clear uninstall procedures to restore original state.
-          Added contextual domain knowledge and integration points.
-          Made documentation concise and agent-readable.
-        ''',
         'context_type': 'library',
+        'action': 'invalid',
+      });
+      expect(result['success'], false);
+      expect(result['error'], contains('Invalid action'));
+    });
+
+    test('should pass evaluation for compliant implementation', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created': [
+          {'path': 'ae_bootstrap.md', 'loc': 400},
+          {'path': 'ae_install.md', 'loc': 350},
+          {'path': 'ae_uninstall.md', 'loc': 200},
+          {'path': 'ae_update.md', 'loc': 250},
+          {'path': 'ae_use.md', 'loc': 300},
+        ],
+        'sections_present': [
+          'Analysis',
+          'Generation',
+          'Validation',
+        ],
+        'validation_steps_exists': true,
+        'integration_points_defined': true,
+        'reversibility_included': false,
+        'has_meta_rules': true,
       });
 
       expect(result['success'], true);
-      expect(result['evaluation'], isA<Map>());
+      expect(result['overall_status'], 'PASS');
 
       final evaluation = result['evaluation'] as Map<String, dynamic>;
-      expect(evaluation['overall_score'], isA<int>());
-      expect(evaluation['overall_rating'], isA<String>());
-      expect(evaluation['principle_scores'], isA<List>());
-      expect(evaluation['recommendations'], isA<List>());
-
-      // Should have decent score with good indicators
-      final overallScore = evaluation['overall_score'] as int;
-      expect(overallScore, greaterThan(50));
+      expect(evaluation['overall_pass'], true);
+      expect(evaluation['checks'], isA<List>());
+      expect(evaluation['actionable_fixes'], isA<List>());
     });
 
-    test('should score principle components correctly', () {
+    test('should fail evaluation for missing required files', () {
       final result = tool.execute({
-        'implementation_details': '''
-          Autonomous agent can execute without manual intervention.
-          Instructions structured in modular, reusable steps.
-          Includes validation and verification at each stage.
-        ''',
-        'context_type': 'project',
-      });
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      final scores = evaluation['principle_scores'] as List;
-
-      // Find Agent Empowerment score
-      final agentEmpowerment = scores.firstWhere(
-        (s) => s['principle'] == 'Agent Empowerment',
-      );
-      expect(agentEmpowerment['score'], greaterThan(0));
-
-      // Find Modularity score
-      final modularity = scores.firstWhere(
-        (s) => s['principle'] == 'Modularity',
-      );
-      expect(modularity['score'], greaterThan(0));
-    });
-
-    test('should provide recommendations for low scores', () {
-      final result = tool.execute({
-        'implementation_details': 'Basic implementation',
         'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created': [
+          {'path': 'ae_bootstrap.md', 'loc': 400},
+        ],
+        'sections_present': ['Analysis', 'Generation', 'Validation'],
+        'validation_steps_exists': true,
+        'integration_points_defined': true,
+        'has_meta_rules': true,
+      });
+
+      expect(result['success'], true);
+      expect(result['overall_status'], 'FAIL');
+
+      final evaluation = result['evaluation'] as Map<String, dynamic>;
+      expect(evaluation['overall_pass'], false);
+      expect(evaluation['actionable_fixes'], isNotEmpty);
+    });
+
+    test('should penalize excessive LOC', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created': [
+          {'path': 'ae_bootstrap.md', 'loc': 900},
+          {'path': 'ae_install.md', 'loc': 850},
+          {'path': 'ae_uninstall.md', 'loc': 820},
+          {'path': 'ae_update.md', 'loc': 810},
+          {'path': 'ae_use.md', 'loc': 805},
+        ],
+        'sections_present': ['Analysis', 'Generation', 'Validation'],
+        'validation_steps_exists': true,
+        'integration_points_defined': true,
+        'has_meta_rules': true,
+      });
+
+      expect(result['overall_status'], 'FAIL');
+
+      final evaluation = result['evaluation'] as Map<String, dynamic>;
+      expect(evaluation['overall_pass'], false);
+
+      final checks = evaluation['checks'] as List;
+      final locCheck = checks.firstWhere(
+        (c) => c['criterion'] == 'Documentation Conciseness',
+      );
+      expect(locCheck['status'], 'FAIL');
+    });
+
+    test('should warn about moderate LOC', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created': [
+          {'path': 'ae_bootstrap.md', 'loc': 600},
+          {'path': 'ae_install.md', 'loc': 550},
+          {'path': 'ae_uninstall.md', 'loc': 520},
+          {'path': 'ae_update.md', 'loc': 510},
+          {'path': 'ae_use.md', 'loc': 505},
+        ],
+        'sections_present': ['Analysis', 'Generation', 'Validation'],
+        'validation_steps_exists': true,
+        'integration_points_defined': true,
+        'has_meta_rules': true,
       });
 
       final evaluation = result['evaluation'] as Map<String, dynamic>;
-      final recommendations = evaluation['recommendations'] as List;
+      final checks = evaluation['checks'] as List;
+      final locCheck = checks.firstWhere(
+        (c) => c['criterion'] == 'Documentation Conciseness',
+      );
+      expect(locCheck['status'], contains('warnings'));
+    });
 
-      expect(recommendations, isNotEmpty);
-      expect(recommendations.length, greaterThan(3));
+    test('should fail evaluation for missing required sections', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created': [
+          {'path': 'ae_bootstrap.md', 'loc': 400},
+          {'path': 'ae_install.md', 'loc': 350},
+          {'path': 'ae_uninstall.md', 'loc': 200},
+          {'path': 'ae_update.md', 'loc': 250},
+          {'path': 'ae_use.md', 'loc': 300},
+        ],
+        'sections_present': ['Analysis'], // Missing Generation and Validation
+        'validation_steps_exists': true,
+        'integration_points_defined': true,
+        'has_meta_rules': true,
+      });
+
+      expect(result['overall_status'], 'FAIL');
+
+      final evaluation = result['evaluation'] as Map<String, dynamic>;
+      expect(evaluation['overall_pass'], false);
+
+      final checks = evaluation['checks'] as List;
+      final sectionsCheck = checks.firstWhere(
+        (c) => c['criterion'] == 'Required Sections',
+      );
+      expect(sectionsCheck['status'], 'FAIL');
+    });
+
+    test('should check action-specific requirements', () {
+      // Test install action requires validation
+      final installResult = tool.execute({
+        'context_type': 'project',
+        'action': 'install',
+        'files_created': [],
+        'sections_present': [
+          'Installation',
+          'Configuration',
+          'Integration',
+          'Validation'
+        ],
+        'validation_steps_exists': false, // Missing!
+        'integration_points_defined': true,
+      });
+
+      expect(installResult['overall_status'], 'FAIL');
+
+      // Test uninstall action requires reversibility
+      final uninstallResult = tool.execute({
+        'context_type': 'project',
+        'action': 'uninstall',
+        'files_created': [],
+        'sections_present': ['Cleanup', 'Restore', 'Verification'],
+        'reversibility_included': false, // Missing!
+      });
+
+      expect(uninstallResult['overall_status'], 'FAIL');
+    });
+
+    test('should handle JSON string inputs', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created':
+            '[{"path": "ae_bootstrap.md", "loc": 400}, {"path": "ae_install.md", "loc": 350}, {"path": "ae_uninstall.md", "loc": 200}, {"path": "ae_update.md", "loc": 250}, {"path": "ae_use.md", "loc": 300}]',
+        'sections_present': '["Analysis", "Generation", "Validation"]',
+        'validation_steps_exists': 'true',
+        'integration_points_defined': 'true',
+        'has_meta_rules': 'true',
+      });
+
+      expect(result['success'], true);
+      expect(result['overall_status'], 'PASS');
+    });
+
+    test('should provide actionable fixes for failures', () {
+      final result = tool.execute({
+        'context_type': 'library',
+        'action': 'bootstrap',
+        'files_created': [
+          {'path': 'ae_bootstrap.md', 'loc': 900}, // Too verbose
+        ],
+        'sections_present': [], // Missing sections
+        'validation_steps_exists': false,
+        'integration_points_defined': false,
+        'has_meta_rules': false,
+      });
+
+      final evaluation = result['evaluation'] as Map<String, dynamic>;
+      final fixes = evaluation['actionable_fixes'] as List;
+
+      expect(fixes, isNotEmpty);
+      expect(fixes.length, greaterThan(3));
+      expect(
+        fixes.any((f) =>
+            f.toString().contains('LOC') || f.toString().contains('verbosity')),
+        true,
+      );
     });
   });
 }
