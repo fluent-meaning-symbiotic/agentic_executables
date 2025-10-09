@@ -10,56 +10,74 @@ This MCP server acts as a **strategic thinking tool** for AI agents, providing s
 
 - **Language & Framework Agnostic**: Works with any programming language or framework
 - **Strategic Guidance**: Provides HOW-TO guidance rather than direct execution tools
-- **Three Core Tools**:
+- **Registry Integration**: Submit and fetch AE files from centralized registry
+- **Five Core Tools**:
+  - `get_agentic_executable_definition` - Get AE framework overview and definitions
   - `get_ae_instructions` - Retrieve contextual instructions for AE operations
   - `verify_ae_implementation` - Generate verification checklists based on AE principles
   - `evaluate_ae_compliance` - Evaluate implementation compliance with scoring
+  - `manage_ae_registry` - Submit libraries to registry or fetch library files
 
 ## Use Cases
 
-### Case 1: Bootstrap AE in a Library
+### Case 1: Library Author - Bootstrap & Submit AE
 
-When a developer tasks an AI agent to create AE files for a library:
+When a library author wants to create and publish AE files:
 
 ```
 AI Agent → MCP: "get_ae_instructions" (context: library, action: bootstrap)
 MCP → AI Agent: Returns ae_bootstrap.md + ae_context.md
-AI Agent: Analyzes instructions, creates plan, executes after confirmation
+AI Agent: Creates ae_install.md, ae_uninstall.md, ae_update.md, ae_use.md
+AI Agent → MCP: "manage_ae_registry" (operation: submit_to_registry)
+MCP → AI Agent: Returns PR instructions for registry submission
 ```
 
-### Case 2: Integrate Library as AE in Project
+### Case 2: Developer - Fetch & Install Library as AE
 
 When a developer wants to use a library with AE support:
 
 ```
-AI Agent → MCP: "get_ae_instructions" (context: project, action: install)
-MCP → AI Agent: Returns ae_use.md + ae_context.md
-AI Agent: Follows integration instructions, creates plan, executes after confirmation
+AI Agent → MCP: "manage_ae_registry" (operation: get_from_registry, library_id: python_requests)
+MCP → AI Agent: Returns ae_install.md content
+AI Agent: Follows installation instructions, executes after confirmation
+```
+
+### Case 3: Understand AE Framework
+
+When an AI agent needs to understand what AE is:
+
+```
+AI Agent → MCP: "get_agentic_executable_definition"
+MCP → AI Agent: Returns AE definition, contexts, actions, tools, principles
 ```
 
 ## Installation
 
-### Development
+For detailed installation instructions, see [ae_install.md](ae_install.md).
+
+### Quick Start
 
 ```bash
+# Clone and build
 cd prompts_framework_mcp
-dart pub get
-```
+./build.sh
 
-### Build Native Binary
-
-```bash
-dart compile exe bin/prompts_framework_mcp_server.dart -o build/server
-```
-
-### Run Server
-
-```bash
-# Development
-dart run bin/prompts_framework_mcp_server.dart
-
-# Production (compiled binary)
+# Run the server
 ./build/server
+```
+
+### MCP Client Configuration
+
+Add to your MCP client configuration (e.g., Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "agentic_executables": {
+      "command": "/absolute/path/to/prompts_framework_mcp/build/server"
+    }
+  }
+}
 ```
 
 ## Docker Deployment
@@ -88,16 +106,39 @@ For cloud deployment, the Docker container can be orchestrated using:
 
 ## MCP Tools
 
-### 1. get_ae_instructions
+### 1. get_agentic_executable_definition
 
-Retrieves appropriate AE documentation based on context and action.
+**Purpose**: Get core AE framework definition and overview.
 
-**Parameters:**
+**Parameters**: None
+
+**Example**:
+
+```json
+{}
+```
+
+**Returns**:
+
+- AE definition and description
+- Available contexts (library, project)
+- Available actions (bootstrap, install, uninstall, update, use)
+- All 5 tools with descriptions
+- Core principles
+- Usage guide for maintainers and developers
+
+**Use Case**: Essential for agents unfamiliar with AE framework or when no server instructions are available.
+
+### 2. get_ae_instructions
+
+**Purpose**: Retrieve contextual AE documentation based on context and action.
+
+**Parameters**:
 
 - `context_type` (required): `"library"` or `"project"`
 - `action` (required): `"bootstrap"`, `"install"`, `"uninstall"`, `"update"`, or `"use"`
 
-**Example:**
+**Example**:
 
 ```json
 {
@@ -106,67 +147,145 @@ Retrieves appropriate AE documentation based on context and action.
 }
 ```
 
-**Returns:**
+**Returns**:
 
 - Relevant .md documentation files
 - Context-specific guidance
 - Principles reference (ae_context.md)
 
-### 2. verify_ae_implementation
+**Use Case**: Get instructions for creating AE files (library) or integrating libraries (project).
 
-Generates verification checklist based on AE core principles.
+### 3. verify_ae_implementation
 
-**Parameters:**
+**Purpose**: Generate verification checklist with objective pass/fail criteria.
+
+**Parameters**:
 
 - `context_type` (required): `"library"` or `"project"`
-- `action` (required): Same as above
-- `description` (required): Description of what was implemented
+- `action` (required): Action that was performed
+- `files_modified` (optional): JSON string array of file objects with path, LOC, sections
+- `checklist_completed` (optional): JSON string object of checklist items (true/false)
 
-**Example:**
+**Example**:
 
 ```json
 {
   "context_type": "project",
   "action": "install",
-  "description": "Installed go_router package as AE with configuration files"
+  "files_modified": "[{\"path\": \"ae_install.md\", \"loc\": 180, \"sections\": [\"Installation\", \"Configuration\"]}]",
+  "checklist_completed": "{\"modularity\": true, \"contextual_awareness\": true, \"agent_empowerment\": true}"
 }
 ```
 
-**Returns:**
+**Returns**:
 
 - Verification checklist with critical items
+- Pass/fail results based on provided data
 - Principle-based checks (Modularity, Reversibility, Validation, etc.)
-- Action-specific validation points
 
-### 3. evaluate_ae_compliance
+**Use Case**: Objective verification after implementation using structured metrics.
 
-Evaluates implementation against AE principles with scoring.
+### 4. evaluate_ae_compliance
 
-**Parameters:**
+**Purpose**: Evaluate implementation with structured scoring (favors conciseness).
 
-- `implementation_details` (required): Detailed implementation description
+**Parameters**:
+
 - `context_type` (required): `"library"` or `"project"`
+- `action` (required): Action that was performed
+- `files_created` (optional): JSON string array of file objects with path and LOC
+- `sections_present` (optional): JSON string array of section names
+- `validation_steps_exists` (optional): Boolean string ("true" or "false")
+- `integration_points_defined` (optional): Boolean string
+- `reversibility_included` (optional): Boolean string
+- `has_meta_rules` (optional): Boolean string
 
-**Example:**
+**Example**:
 
 ```json
 {
-  "implementation_details": "Created ae_install.md with step-by-step instructions for dependency installation, configuration setup, and service integration. Included validation checks at each step.",
-  "context_type": "library"
+  "context_type": "library",
+  "action": "bootstrap",
+  "files_created": "[{\"path\": \"ae_install.md\", \"loc\": 150}]",
+  "sections_present": "[\"Installation\", \"Configuration\", \"Validation\"]",
+  "validation_steps_exists": "true",
+  "reversibility_included": "true"
 }
 ```
 
-**Returns:**
+**Returns**:
 
-- Overall compliance score (0-100)
-- Principle-based scoring:
-  - Agent Empowerment (20%)
-  - Modularity (20%)
-  - Contextual Awareness (20%)
-  - Reversibility (15%)
-  - Validation (15%)
-  - Documentation Quality (10%)
+- Overall compliance score with pass/fail verdict
+- LOC scoring: <500 PASS, 500-800 WARNING, >800 FAIL (lower is better)
+- Principle-based evaluation
 - Recommendations for improvement
+
+**Use Case**: Objective scoring based on concrete metrics, not subjective descriptions.
+
+### 5. manage_ae_registry
+
+**Purpose**: Submit libraries to registry (authors) or fetch library files (developers).
+
+**Parameters**:
+
+- `operation` (required): `"submit_to_registry"`, `"get_from_registry"`, or `"bootstrap_local_registry"`
+- `library_url` (for submit): GitHub repository URL
+- `library_id` (for submit/get): Format `<language>_<library_name>` (e.g., `python_requests`)
+- `ae_use_files` (for submit): Comma-separated list of ae_use file paths
+- `action` (for get): Which file to fetch (`"install"`, `"uninstall"`, `"update"`, `"use"`)
+- `ae_use_path` (for bootstrap_local): Path to local ae_use folder
+
+**Example - Submit to Registry**:
+
+```json
+{
+  "operation": "submit_to_registry",
+  "library_url": "https://github.com/owner/requests",
+  "library_id": "python_requests",
+  "ae_use_files": "ae_use/ae_install.md,ae_use/ae_uninstall.md,ae_use/ae_update.md,ae_use/ae_use.md"
+}
+```
+
+**Example - Get from Registry**:
+
+```json
+{
+  "operation": "get_from_registry",
+  "library_id": "python_requests",
+  "action": "install"
+}
+```
+
+**Returns**:
+
+- For submit: PR instructions, file mappings, registry folder path
+- For get: File content directly from registry
+- For bootstrap_local: Instructions for monorepo setup
+
+**Use Case**: Authors publish AE files, developers fetch them directly without manual browsing.
+
+## Registry Configuration
+
+The server integrates with the centralized AE registry:
+
+- **Registry URL**: https://github.com/fluent-meaning-symbiotic/agentic_executables
+- **Registry Path**: `ae_use_registry/`
+- **Library ID Format**: `<language>_<library_name>` (e.g., `python_requests`, `dart_provider`)
+- **Required Files**: `ae_install.md`, `ae_uninstall.md`, `ae_update.md`, `ae_use.md`, `README.md`
+
+### For Library Authors
+
+1. Create AE files using `get_ae_instructions`
+2. Call `manage_ae_registry` with `submit_to_registry` operation
+3. Follow PR instructions to submit to registry
+4. Developers can then fetch your library files directly
+
+### For Developers
+
+1. Call `manage_ae_registry` with `get_from_registry` operation
+2. Specify `library_id` and `action` (install/uninstall/update/use)
+3. Receive file content directly from registry
+4. No authentication required for public registry
 
 ## AE Framework Principles
 
@@ -184,47 +303,72 @@ The server guides agents to follow these core principles:
 ```
 prompts_framework_mcp/
 ├── bin/
-│   └── prompts_framework_mcp_server.dart   # Entry point
+│   └── prompts_framework_mcp_server.dart          # Entry point
 ├── lib/
 │   └── src/
-│       ├── server.dart                     # MCPServer implementation
+│       ├── server.dart                            # MCPServer implementation
+│       ├── ae_framework_config.dart               # Registry & framework config
+│       ├── ae_validation_config.dart              # Validation rules
 │       ├── resources/
-│       │   └── ae_documents.dart           # Document loading/caching
-│       └── tools/
-│           ├── get_ae_instructions.dart
-│           ├── verify_ae_implementation.dart
-│           └── evaluate_ae_compliance.dart
+│       │   └── ae_documents.dart                  # Document loading/caching
+│       ├── tools/
+│       │   ├── get_agentic_executable_definition.dart
+│       │   ├── get_ae_instructions.dart
+│       │   ├── verify_ae_implementation.dart
+│       │   ├── evaluate_ae_compliance.dart
+│       │   └── manage_ae_registry.dart            # Registry operations
+│       └── utils/
+│           ├── github_raw_fetcher.dart            # Fetch from GitHub
+│           └── registry_resolver.dart             # Registry path resolution
 ├── resources/
-│   ├── ae_context.md                       # Core principles
-│   ├── ae_bootstrap.md                     # Bootstrap guidance
-│   └── ae_use.md                          # Usage guidance
-├── Dockerfile                              # Multi-stage build
-└── pubspec.yaml                           # Dependencies
+│   ├── ae_context.md                              # Core principles
+│   ├── ae_bootstrap.md                            # Bootstrap guidance
+│   └── ae_use.md                                  # Usage guidance
+├── Dockerfile                                     # Multi-stage build
+└── pubspec.yaml                                   # Dependencies
 ```
 
 ## Integration with AI Agents
 
 AI agents (like Claude, GPT-4, or others) can integrate this MCP server to:
 
-1. **Query for guidance** when faced with library management tasks
-2. **Verify their work** against AE principles before execution
-3. **Evaluate compliance** of their implementations
-4. **Adapt instructions** to specific project contexts and languages
+1. **Understand AE framework** via `get_agentic_executable_definition`
+2. **Query for guidance** when faced with library management tasks
+3. **Access registry** to submit or fetch library AE files
+4. **Verify their work** against AE principles with objective metrics
+5. **Evaluate compliance** using structured scoring
+6. **Adapt instructions** to specific project contexts and languages
 
-### Example Agent Workflow
+### Example Workflow: Library Author
 
 ```
-1. Developer: "Bootstrap AE for the 'axios' library"
+1. Developer: "Bootstrap AE for the 'axios' library and publish to registry"
 2. Agent: Queries MCP → get_ae_instructions(library, bootstrap)
 3. Agent: Receives ae_bootstrap.md + ae_context.md
-4. Agent: Analyzes codebase, creates plan
+4. Agent: Analyzes codebase, creates AE files
 5. Agent: Presents plan to developer
 6. Developer: Approves
-7. Agent: Executes plan
-8. Agent: Queries MCP → verify_ae_implementation(...)
-9. Agent: Reviews checklist, confirms all items met
-10. Agent: Queries MCP → evaluate_ae_compliance(...)
-11. Agent: Reviews score, makes improvements if needed
+7. Agent: Executes plan (creates ae_install.md, ae_uninstall.md, etc.)
+8. Agent: Queries MCP → verify_ae_implementation(library, bootstrap, files_modified, checklist)
+9. Agent: Reviews verification results
+10. Agent: Queries MCP → evaluate_ae_compliance(library, bootstrap, files_created, sections)
+11. Agent: Reviews score, optimizes if needed
+12. Agent: Queries MCP → manage_ae_registry(submit_to_registry, library_url, library_id, ae_use_files)
+13. Agent: Receives PR instructions, presents to developer
+```
+
+### Example Workflow: Developer Using Library
+
+```
+1. Developer: "Install the requests library using AE"
+2. Agent: Queries MCP → manage_ae_registry(get_from_registry, library_id: python_requests, action: install)
+3. Agent: Receives ae_install.md content
+4. Agent: Analyzes instructions, creates plan
+5. Agent: Presents plan to developer
+6. Developer: Approves
+7. Agent: Executes installation steps
+8. Agent: Queries MCP → verify_ae_implementation(project, install, files_modified, checklist)
+9. Agent: Confirms successful installation
 ```
 
 ## Development
@@ -267,6 +411,8 @@ For issues, questions, or contributions, please visit the repository or contact 
 
 ## References
 
+- [Installation Guide](ae_install.md) - Detailed installation instructions for AI agents
 - [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/)
 - [dart_mcp Package](https://pub.dev/packages/dart_mcp)
+- [AE Registry](https://github.com/fluent-meaning-symbiotic/agentic_executables/tree/main/ae_use_registry)
 - AE Framework Documentation (see `resources/` directory)
