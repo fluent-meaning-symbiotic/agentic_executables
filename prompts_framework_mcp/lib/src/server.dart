@@ -139,7 +139,32 @@ This server provides strategic guidance; full documentation comes from tool resp
   Tool _createVerifyTool() => Tool(
         name: 'verify_ae_implementation',
         description:
-            'Generates a verification checklist based on AE core principles (Modularity, Reversibility, Validation, Contextual Awareness, Agent Empowerment). Use this to verify implementation compliance.',
+            '''Verifies AE implementation using structured metrics. Agent provides checklist completion status and file modifications, MCP performs objective verification with pass/fail results.
+
+Expected input format:
+{
+  "context_type": "library" or "project",
+  "action": "bootstrap"|"install"|"uninstall"|"update"|"use",
+  "files_modified": [
+    {"path": "ae_install.md", "loc": 180, "sections": ["Installation", "Configuration"]}
+  ],
+  "checklist_completed": {
+    "modularity": true,
+    "contextual_awareness": true,
+    "agent_empowerment": false,
+    "validation": true,
+    "integration": true,
+    "reversibility": true,
+    "cleanup": true,
+    "migration": true,
+    "backup_rollback": true,
+    "best_practices": true,
+    "anti_patterns": true,
+    "analysis_guidance": true,
+    "file_generation_rules": true,
+    "abstraction": true
+  }
+}''',
         inputSchema: Schema.object(
           properties: {
             'context_type': Schema.string(
@@ -156,12 +181,16 @@ This server provides strategic guidance; full documentation comes from tool resp
                 'use'
               ],
             ),
-            'description': Schema.string(
+            'files_modified': Schema.string(
               description:
-                  'Brief description of what was implemented for context',
+                  'JSON string array of file objects: [{"path": "ae_install.md", "loc": 180, "sections": ["Installation"]}]',
+            ),
+            'checklist_completed': Schema.string(
+              description:
+                  'JSON string object of checklist items: {"modularity": true, "contextual_awareness": true, ...}',
             ),
           },
-          required: ['context_type', 'action', 'description'],
+          required: ['context_type', 'action'],
         ),
       );
 
@@ -169,19 +198,62 @@ This server provides strategic guidance; full documentation comes from tool resp
   Tool _createEvaluateTool() => Tool(
         name: 'evaluate_ae_compliance',
         description:
-            'Evaluates implementation details against AE core principles and provides compliance scores with recommendations. Returns detailed scoring for Agent Empowerment, Modularity, Contextual Awareness, Reversibility, Validation, and Documentation Quality.',
+            '''Evaluates AE implementation using structured metrics and hardcoded scoring. Agent provides concrete data (files, LOC, sections, flags), MCP performs objective pass/fail evaluation. Favors concise documentation (lower LOC = better score).
+
+Expected input format:
+{
+  "context_type": "library" or "project",
+  "action": "bootstrap"|"install"|"uninstall"|"update"|"use",
+  "files_created": [
+    {"path": "ae_install.md", "loc": 150},
+    {"path": "ae_uninstall.md", "loc": 80}
+  ],
+  "sections_present": ["Installation", "Configuration", "Integration", "Validation"],
+  "validation_steps_exists": true,
+  "integration_points_defined": true,
+  "reversibility_included": true,
+  "has_meta_rules": true
+}
+
+LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
         inputSchema: Schema.object(
           properties: {
-            'implementation_details': Schema.string(
-              description:
-                  'Detailed description of the implementation to evaluate',
-            ),
             'context_type': Schema.string(
               description: 'Context: "library" or "project"',
               enumValues: ['library', 'project'],
             ),
+            'action': Schema.string(
+              description: 'Action that was performed',
+              enumValues: [
+                'bootstrap',
+                'install',
+                'uninstall',
+                'update',
+                'use'
+              ],
+            ),
+            'files_created': Schema.string(
+              description:
+                  'JSON string array of file objects: [{"path": "ae_install.md", "loc": 150}]',
+            ),
+            'sections_present': Schema.string(
+              description:
+                  'JSON string array of section names: ["Installation", "Configuration", "Validation"]',
+            ),
+            'validation_steps_exists': Schema.string(
+              description: 'Boolean string: "true" or "false"',
+            ),
+            'integration_points_defined': Schema.string(
+              description: 'Boolean string: "true" or "false"',
+            ),
+            'reversibility_included': Schema.string(
+              description: 'Boolean string: "true" or "false"',
+            ),
+            'has_meta_rules': Schema.string(
+              description: 'Boolean string: "true" or "false"',
+            ),
           },
-          required: ['implementation_details', 'context_type'],
+          required: ['context_type', 'action'],
         ),
       );
 

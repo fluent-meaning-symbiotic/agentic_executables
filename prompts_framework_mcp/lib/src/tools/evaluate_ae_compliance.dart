@@ -1,242 +1,333 @@
-/// Tool for evaluating AE implementation compliance with core principles.
+import 'dart:convert';
+
+/// Tool for evaluating AE implementation compliance with objective metrics.
 class EvaluateAEComplianceTool {
-  /// Evaluates implementation against AE core principles.
+  /// Evaluates implementation using structured metrics and hardcoded scoring.
   Map<String, dynamic> execute(Map<String, dynamic> params) {
-    final implementationDetails = params['implementation_details'] as String?;
     final contextType = params['context_type'] as String?;
+    final action = params['action'] as String?;
+
+    // Parse files_created (can be List or String)
+    final filesCreated = _parseList(params['files_created']);
+
+    // Parse sections_present (can be List or String)
+    final sectionsPresent = _parseList(params['sections_present']);
+
+    // Parse boolean flags (can be bool or String)
+    final validationStepsExists = _parseBool(params['validation_steps_exists']);
+    final integrationPointsDefined =
+        _parseBool(params['integration_points_defined']);
+    final reversibilityIncluded = _parseBool(params['reversibility_included']);
+    final hasMetaRules = _parseBool(params['has_meta_rules']);
 
     // Validate required parameters
-    if (implementationDetails == null || implementationDetails.isEmpty) {
-      return _errorResponse('Parameter "implementation_details" is required');
-    }
     if (contextType == null || contextType.isEmpty) {
       return _errorResponse('Parameter "context_type" is required');
     }
-
-    // Validate enum values
     if (!['library', 'project'].contains(contextType)) {
       return _errorResponse(
         'Invalid context_type. Must be "library" or "project"',
       );
     }
+    if (action == null || action.isEmpty) {
+      return _errorResponse('Parameter "action" is required');
+    }
+    if (!['bootstrap', 'install', 'uninstall', 'update', 'use']
+        .contains(action)) {
+      return _errorResponse(
+        'Invalid action. Must be one of: bootstrap, install, uninstall, update, use',
+      );
+    }
 
-    final evaluation = _evaluatePrinciples(implementationDetails, contextType);
+    final evaluation = _evaluateMetrics(
+      contextType: contextType,
+      action: action,
+      filesCreated: filesCreated,
+      sectionsPresent: sectionsPresent,
+      validationStepsExists: validationStepsExists,
+      integrationPointsDefined: integrationPointsDefined,
+      reversibilityIncluded: reversibilityIncluded,
+      hasMetaRules: hasMetaRules,
+    );
 
     return {
       'success': true,
       'context_type': contextType,
+      'action': action,
       'evaluation': evaluation,
-      'message':
-          'Evaluation completed. Review scores and recommendations below.',
+      'overall_status': evaluation['overall_pass'] ? 'PASS' : 'FAIL',
+      'message': evaluation['overall_pass']
+          ? 'Implementation meets AE compliance requirements.'
+          : 'Implementation has issues that need to be addressed.',
     };
   }
 
-  /// Evaluates implementation against core AE principles.
-  Map<String, dynamic> _evaluatePrinciples(
-    String implementation,
-    String contextType,
-  ) {
-    final lowerImpl = implementation.toLowerCase();
+  /// Evaluates metrics against hardcoded thresholds.
+  Map<String, dynamic> _evaluateMetrics({
+    required String contextType,
+    required String action,
+    required List filesCreated,
+    required List sectionsPresent,
+    required bool validationStepsExists,
+    required bool integrationPointsDefined,
+    required bool reversibilityIncluded,
+    required bool hasMetaRules,
+  }) {
+    final results = <Map<String, dynamic>>[];
+    var passCount = 0;
+    var totalChecks = 0;
 
-    // Define evaluation criteria
-    final criteria = [
-      {
-        'principle': 'Agent Empowerment',
-        'weight': 20,
-        'indicators': [
-          'autonomous',
-          'meta-rule',
-          'ai agent',
-          'without manual',
-          'self-guided'
-        ],
-        'description':
-            'Assesses if instructions enable AI agents to work autonomously',
-      },
-      {
-        'principle': 'Modularity',
-        'weight': 20,
-        'indicators': [
-          'step',
-          'sequential',
-          'modular',
-          'reusable',
-          'clear structure'
-        ],
-        'description':
-            'Evaluates if instructions are structured in clear, reusable steps',
-      },
-      {
-        'principle': 'Contextual Awareness',
-        'weight': 20,
-        'indicators': [
-          'domain knowledge',
-          'integration point',
-          'context',
-          'architecture',
-          'analyze'
-        ],
-        'description':
-            'Checks if sufficient domain knowledge is provided for understanding',
-      },
-      {
-        'principle': 'Reversibility',
-        'weight': 15,
-        'indicators': [
-          'uninstall',
-          'remove',
-          'cleanup',
-          'restore',
-          'original state'
-        ],
-        'description':
-            'Verifies that operations can be cleanly reversed if applicable',
-      },
-      {
-        'principle': 'Validation',
-        'weight': 15,
-        'indicators': ['check', 'verify', 'validate', 'test', 'ensure'],
-        'description':
-            'Confirms that validation steps are included for reliability',
-      },
-      {
-        'principle': 'Documentation Quality',
-        'weight': 10,
-        'indicators': [
-          'concise',
-          'agent-readable',
-          'clear',
-          'explicit',
-          'instruction'
-        ],
-        'description':
-            'Assesses conciseness and agent-readability of documentation',
-      },
-    ];
+    // Check 1: Required files present
+    final requiredFiles = _getRequiredFiles(contextType, action);
+    final createdPaths = filesCreated.map((f) => f['path'] as String).toList();
+    final missingFiles =
+        requiredFiles.where((f) => !createdPaths.contains(f)).toList();
+    final filesPass = missingFiles.isEmpty;
 
-    final scores = <Map<String, dynamic>>[];
-    var totalWeightedScore = 0.0;
-    var totalWeight = 0;
+    totalChecks++;
+    if (filesPass) passCount++;
 
-    for (final criterion in criteria) {
-      final indicators = criterion['indicators'] as List<String>;
-      final weight = criterion['weight'] as int;
-      var matchCount = 0;
+    results.add({
+      'criterion': 'Required Files',
+      'status': filesPass ? 'PASS' : 'FAIL',
+      'details': filesPass
+          ? 'All required files present: ${requiredFiles.join(", ")}'
+          : 'Missing files: ${missingFiles.join(", ")}',
+      'critical': true,
+    });
 
-      // Count indicator matches
-      for (final indicator in indicators) {
-        if (lowerImpl.contains(indicator)) {
-          matchCount++;
-        }
+    // Check 2: LOC per file (lower is better)
+    final locResults = <String>[];
+    var locPass = true;
+    var locWarning = false;
+
+    for (final file in filesCreated) {
+      final filePath = file['path'] as String;
+      final loc = file['loc'] as int? ?? 0;
+
+      if (loc > 800) {
+        locPass = false;
+        locResults
+            .add('$filePath: $loc LOC (FAIL - too verbose, should be <800)');
+      } else if (loc > 500) {
+        locWarning = true;
+        locResults
+            .add('$filePath: $loc LOC (WARNING - consider reducing to <500)');
+      } else {
+        locResults.add('$filePath: $loc LOC (PASS - concise)');
       }
+    }
 
-      // Calculate score (0-100)
-      final score = (matchCount / indicators.length * 100).round();
-      final weightedScore = score * weight / 100;
-      totalWeightedScore += weightedScore;
-      totalWeight += weight;
+    totalChecks++;
+    if (locPass) passCount++;
 
-      scores.add({
-        'principle': criterion['principle'],
-        'score': score,
-        'weight': weight,
-        'weighted_score': weightedScore.round(),
-        'description': criterion['description'],
-        'assessment': _getAssessment(score),
+    results.add({
+      'criterion': 'Documentation Conciseness',
+      'status':
+          locPass ? (locWarning ? 'PASS (with warnings)' : 'PASS') : 'FAIL',
+      'details': locResults.join('; '),
+      'critical': true,
+    });
+
+    // Check 3: Required sections present
+    final requiredSections = _getRequiredSections(action);
+    final missingSections =
+        requiredSections.where((s) => !sectionsPresent.contains(s)).toList();
+    final sectionsPass = missingSections.isEmpty;
+
+    totalChecks++;
+    if (sectionsPass) passCount++;
+
+    results.add({
+      'criterion': 'Required Sections',
+      'status': sectionsPass ? 'PASS' : 'FAIL',
+      'details': sectionsPass
+          ? 'All required sections present: ${requiredSections.join(", ")}'
+          : 'Missing sections: ${missingSections.join(", ")}',
+      'critical': true,
+    });
+
+    // Check 4: Validation steps (action-specific)
+    if (_requiresValidation(action)) {
+      totalChecks++;
+      if (validationStepsExists) passCount++;
+
+      results.add({
+        'criterion': 'Validation Steps',
+        'status': validationStepsExists ? 'PASS' : 'FAIL',
+        'details': validationStepsExists
+            ? 'Validation steps are defined'
+            : 'Validation steps are missing',
+        'critical': true,
       });
     }
 
-    final overallScore = (totalWeightedScore / totalWeight * 100).round();
+    // Check 5: Integration points (action-specific)
+    if (_requiresIntegration(action)) {
+      totalChecks++;
+      if (integrationPointsDefined) passCount++;
+
+      results.add({
+        'criterion': 'Integration Points',
+        'status': integrationPointsDefined ? 'PASS' : 'FAIL',
+        'details': integrationPointsDefined
+            ? 'Integration points are defined'
+            : 'Integration points are missing',
+        'critical': true,
+      });
+    }
+
+    // Check 6: Reversibility (action-specific)
+    if (_requiresReversibility(action)) {
+      totalChecks++;
+      if (reversibilityIncluded) passCount++;
+
+      results.add({
+        'criterion': 'Reversibility',
+        'status': reversibilityIncluded ? 'PASS' : 'FAIL',
+        'details': reversibilityIncluded
+            ? 'Reversibility procedures are included'
+            : 'Reversibility procedures are missing',
+        'critical': true,
+      });
+    }
+
+    // Check 7: Meta-rules (action-specific)
+    if (_requiresMetaRules(action)) {
+      totalChecks++;
+      if (hasMetaRules) passCount++;
+
+      results.add({
+        'criterion': 'Meta-rules',
+        'status': hasMetaRules ? 'PASS' : 'FAIL',
+        'details': hasMetaRules
+            ? 'Meta-rules for agent guidance are present'
+            : 'Meta-rules are missing',
+        'critical': true,
+      });
+    }
+
+    final overallPass = passCount == totalChecks;
 
     return {
-      'overall_score': overallScore,
-      'overall_rating': _getOverallRating(overallScore),
-      'principle_scores': scores,
-      'recommendations': _generateRecommendations(scores, contextType),
-      'note':
-          'This is an automated heuristic evaluation. Manual review is recommended for accuracy.',
+      'overall_pass': overallPass,
+      'pass_count': passCount,
+      'total_checks': totalChecks,
+      'pass_rate':
+          totalChecks > 0 ? (passCount / totalChecks * 100).round() : 0,
+      'checks': results,
+      'actionable_fixes': _generateActionableFixes(results),
     };
   }
 
-  String _getAssessment(int score) {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    if (score >= 40) return 'Fair';
-    if (score >= 20) return 'Needs Improvement';
-    return 'Critical - Requires Attention';
+  /// Returns required files based on context and action.
+  List<String> _getRequiredFiles(String contextType, String action) {
+    if (contextType == 'library') {
+      switch (action) {
+        case 'bootstrap':
+          return [
+            'ae_bootstrap.md',
+            'ae_install.md',
+            'ae_uninstall.md',
+            'ae_update.md',
+            'ae_use.md'
+          ];
+        case 'update':
+          return [
+            'ae_bootstrap.md',
+            'ae_install.md',
+            'ae_uninstall.md',
+            'ae_update.md',
+            'ae_use.md'
+          ];
+        default:
+          return [];
+      }
+    } else {
+      // Project context - no files required to be created
+      return [];
+    }
   }
 
-  String _getOverallRating(int score) {
-    if (score >= 80) return 'Highly Compliant';
-    if (score >= 60) return 'Moderately Compliant';
-    if (score >= 40) return 'Partially Compliant';
-    return 'Non-Compliant';
+  /// Returns required sections based on action.
+  List<String> _getRequiredSections(String action) {
+    switch (action) {
+      case 'bootstrap':
+        return ['Analysis', 'Generation', 'Validation'];
+      case 'install':
+        return ['Installation', 'Configuration', 'Integration', 'Validation'];
+      case 'uninstall':
+        return ['Cleanup', 'Restore', 'Verification'];
+      case 'update':
+        return ['Migration', 'Validation', 'Rollback'];
+      case 'use':
+        return ['Usage', 'Best Practices'];
+      default:
+        return [];
+    }
   }
 
-  List<String> _generateRecommendations(
-    List<Map<String, dynamic>> scores,
-    String contextType,
-  ) {
-    final recommendations = <String>[];
+  bool _requiresValidation(String action) =>
+      ['bootstrap', 'install', 'update'].contains(action);
 
-    for (final score in scores) {
-      final principle = score['principle'] as String;
-      final scoreValue = score['score'] as int;
+  bool _requiresIntegration(String action) =>
+      ['install', 'bootstrap'].contains(action);
 
-      if (scoreValue < 60) {
-        switch (principle) {
-          case 'Agent Empowerment':
-            recommendations.add(
-              'Enhance agent autonomy: Include meta-rules and self-guided instructions that enable AI agents to make decisions independently.',
+  bool _requiresReversibility(String action) =>
+      ['uninstall', 'update'].contains(action);
+
+  bool _requiresMetaRules(String action) => action == 'bootstrap';
+
+  /// Generates actionable fixes for failed checks.
+  List<String> _generateActionableFixes(List<Map<String, dynamic>> results) {
+    final fixes = <String>[];
+
+    for (final result in results) {
+      if (result['status'] != 'PASS') {
+        final criterion = result['criterion'] as String;
+        final details = result['details'] as String;
+
+        switch (criterion) {
+          case 'Required Files':
+            fixes.add('Create missing files: $details');
+            break;
+          case 'Documentation Conciseness':
+            fixes.add(
+              'Reduce documentation verbosity: $details. Focus on agent-executable instructions, not human explanations.',
             );
             break;
-          case 'Modularity':
-            recommendations.add(
-              'Improve modularity: Break down instructions into clear, sequential, reusable steps (Installation → Configuration → Integration → Usage).',
+          case 'Required Sections':
+            fixes.add('Add missing sections: $details');
+            break;
+          case 'Validation Steps':
+            fixes.add(
+              'Add validation steps to verify successful execution (e.g., check installation, verify configuration)',
             );
             break;
-          case 'Contextual Awareness':
-            recommendations.add(
-              'Add contextual awareness: Include domain knowledge, architecture details, and integration points to help agents understand the system.',
+          case 'Integration Points':
+            fixes.add(
+              'Define clear integration points showing how to connect with existing codebase',
             );
             break;
           case 'Reversibility':
-            recommendations.add(
-              'Ensure reversibility: Provide clear uninstallation/cleanup procedures that restore the original state.',
+            fixes.add(
+              'Add reversibility procedures to cleanly undo changes and restore original state',
             );
             break;
-          case 'Validation':
-            recommendations.add(
-              'Include validation: Add checks, verification steps, and validation procedures to ensure reliability.',
-            );
-            break;
-          case 'Documentation Quality':
-            recommendations.add(
-              'Improve documentation: Make instructions more concise, explicit, and agent-readable rather than verbose.',
+          case 'Meta-rules':
+            fixes.add(
+              'Include meta-rules that guide agents on how to adapt instructions to specific contexts',
             );
             break;
         }
       }
     }
 
-    // Context-specific recommendations
-    if (contextType == 'library') {
-      recommendations.add(
-        'Library context: Ensure instructions are language-agnostic and abstract enough to apply across different library types.',
-      );
-    } else {
-      recommendations.add(
-        'Project context: Ensure integration instructions consider existing project structure and dependencies.',
-      );
+    if (fixes.isEmpty) {
+      fixes.add('All checks passed. Implementation is compliant.');
     }
 
-    if (recommendations.isEmpty) {
-      recommendations.add(
-        'Implementation shows good compliance with AE principles. Continue following these patterns.',
-      );
-    }
-
-    return recommendations;
+    return fixes;
   }
 
   Map<String, dynamic> _errorResponse(String message) {
@@ -244,5 +335,30 @@ class EvaluateAEComplianceTool {
       'success': false,
       'error': message,
     };
+  }
+
+  /// Parses a parameter that can be either a List or a JSON string.
+  List _parseList(dynamic value) {
+    if (value == null) return [];
+    if (value is List) return value;
+    if (value is String) {
+      try {
+        final decoded = jsonDecode(value);
+        return decoded is List ? decoded : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  /// Parses a parameter that can be either a bool or a string.
+  bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is String) {
+      return value.toLowerCase() == 'true';
+    }
+    return false;
   }
 }
