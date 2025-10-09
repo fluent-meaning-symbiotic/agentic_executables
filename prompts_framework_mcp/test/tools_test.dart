@@ -1,3 +1,4 @@
+import 'package:prompts_framework_mcp/src/ae_validation_config.dart';
 import 'package:prompts_framework_mcp/src/tools/evaluate_ae_compliance.dart';
 import 'package:prompts_framework_mcp/src/tools/verify_ae_implementation.dart';
 import 'package:test/test.dart';
@@ -41,13 +42,30 @@ void main() {
         'files_modified': [
           {
             'path': 'ae_bootstrap.md',
-            'loc': 400,
-            'sections': ['Analysis', 'Generation', 'Validation']
+            'loc': AEValidationConfig.warningLoc - 100, // Well under threshold
+            'sections': AEValidationConfig.getRequiredSectionsForFile(
+                'ae_bootstrap.md', 'bootstrap')
           },
-          {'path': 'ae_install.md', 'loc': 350, 'sections': []},
-          {'path': 'ae_uninstall.md', 'loc': 200, 'sections': []},
-          {'path': 'ae_update.md', 'loc': 250, 'sections': []},
-          {'path': 'ae_use.md', 'loc': 300, 'sections': []},
+          {
+            'path': 'ae_install.md',
+            'loc': AEValidationConfig.warningLoc - 150,
+            'sections': []
+          },
+          {
+            'path': 'ae_uninstall.md',
+            'loc': AEValidationConfig.warningLoc - 300,
+            'sections': []
+          },
+          {
+            'path': 'ae_update.md',
+            'loc': AEValidationConfig.warningLoc - 250,
+            'sections': []
+          },
+          {
+            'path': 'ae_use.md',
+            'loc': AEValidationConfig.warningLoc - 200,
+            'sections': []
+          },
         ],
         'checklist_completed': {
           'modularity': true,
@@ -73,7 +91,11 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_modified': [
-          {'path': 'ae_bootstrap.md', 'loc': 400, 'sections': []},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.warningLoc - 100,
+            'sections': []
+          },
         ],
         'checklist_completed': {
           'modularity': true,
@@ -94,11 +116,31 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_modified': [
-          {'path': 'ae_bootstrap.md', 'loc': 600, 'sections': []},
-          {'path': 'ae_install.md', 'loc': 550, 'sections': []},
-          {'path': 'ae_uninstall.md', 'loc': 520, 'sections': []},
-          {'path': 'ae_update.md', 'loc': 510, 'sections': []},
-          {'path': 'ae_use.md', 'loc': 505, 'sections': []},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.warningLoc + 100,
+            'sections': []
+          },
+          {
+            'path': 'ae_install.md',
+            'loc': AEValidationConfig.warningLoc + 50,
+            'sections': []
+          },
+          {
+            'path': 'ae_uninstall.md',
+            'loc': AEValidationConfig.warningLoc + 20,
+            'sections': []
+          },
+          {
+            'path': 'ae_update.md',
+            'loc': AEValidationConfig.warningLoc + 10,
+            'sections': []
+          },
+          {
+            'path': 'ae_use.md',
+            'loc': AEValidationConfig.warningLoc + 5,
+            'sections': []
+          },
         ],
         'checklist_completed': {
           'modularity': true,
@@ -121,11 +163,31 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_modified': [
-          {'path': 'ae_bootstrap.md', 'loc': 900, 'sections': []},
-          {'path': 'ae_install.md', 'loc': 350, 'sections': []},
-          {'path': 'ae_uninstall.md', 'loc': 200, 'sections': []},
-          {'path': 'ae_update.md', 'loc': 250, 'sections': []},
-          {'path': 'ae_use.md', 'loc': 300, 'sections': []},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.maxLoc + 100,
+            'sections': []
+          },
+          {
+            'path': 'ae_install.md',
+            'loc': AEValidationConfig.warningLoc - 150,
+            'sections': []
+          },
+          {
+            'path': 'ae_uninstall.md',
+            'loc': AEValidationConfig.warningLoc - 300,
+            'sections': []
+          },
+          {
+            'path': 'ae_update.md',
+            'loc': AEValidationConfig.warningLoc - 250,
+            'sections': []
+          },
+          {
+            'path': 'ae_use.md',
+            'loc': AEValidationConfig.warningLoc - 200,
+            'sections': []
+          },
         ],
         'checklist_completed': {
           'modularity': true,
@@ -219,17 +281,19 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': 400},
-          {'path': 'ae_install.md', 'loc': 350},
-          {'path': 'ae_uninstall.md', 'loc': 200},
-          {'path': 'ae_update.md', 'loc': 250},
-          {'path': 'ae_use.md', 'loc': 300},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.warningLoc - 100
+          },
+          {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc - 150},
+          {
+            'path': 'ae_uninstall.md',
+            'loc': AEValidationConfig.warningLoc - 300
+          },
+          {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc - 250},
+          {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc - 200},
         ],
-        'sections_present': [
-          'Analysis',
-          'Generation',
-          'Validation',
-        ],
+        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
         'validation_steps_exists': true,
         'integration_points_defined': true,
         'reversibility_included': false,
@@ -250,9 +314,12 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': 400},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.warningLoc - 100
+          },
         ],
-        'sections_present': ['Analysis', 'Generation', 'Validation'],
+        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
         'validation_steps_exists': true,
         'integration_points_defined': true,
         'has_meta_rules': true,
@@ -271,13 +338,13 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': 900},
-          {'path': 'ae_install.md', 'loc': 850},
-          {'path': 'ae_uninstall.md', 'loc': 820},
-          {'path': 'ae_update.md', 'loc': 810},
-          {'path': 'ae_use.md', 'loc': 805},
+          {'path': 'ae_bootstrap.md', 'loc': AEValidationConfig.maxLoc + 100},
+          {'path': 'ae_install.md', 'loc': AEValidationConfig.maxLoc + 50},
+          {'path': 'ae_uninstall.md', 'loc': AEValidationConfig.maxLoc + 20},
+          {'path': 'ae_update.md', 'loc': AEValidationConfig.maxLoc + 10},
+          {'path': 'ae_use.md', 'loc': AEValidationConfig.maxLoc + 5},
         ],
-        'sections_present': ['Analysis', 'Generation', 'Validation'],
+        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
         'validation_steps_exists': true,
         'integration_points_defined': true,
         'has_meta_rules': true,
@@ -300,13 +367,19 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': 600},
-          {'path': 'ae_install.md', 'loc': 550},
-          {'path': 'ae_uninstall.md', 'loc': 520},
-          {'path': 'ae_update.md', 'loc': 510},
-          {'path': 'ae_use.md', 'loc': 505},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.warningLoc + 100
+          },
+          {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc + 50},
+          {
+            'path': 'ae_uninstall.md',
+            'loc': AEValidationConfig.warningLoc + 20
+          },
+          {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc + 10},
+          {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc + 5},
         ],
-        'sections_present': ['Analysis', 'Generation', 'Validation'],
+        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
         'validation_steps_exists': true,
         'integration_points_defined': true,
         'has_meta_rules': true,
@@ -325,13 +398,19 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': 400},
-          {'path': 'ae_install.md', 'loc': 350},
-          {'path': 'ae_uninstall.md', 'loc': 200},
-          {'path': 'ae_update.md', 'loc': 250},
-          {'path': 'ae_use.md', 'loc': 300},
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.warningLoc - 100
+          },
+          {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc - 150},
+          {
+            'path': 'ae_uninstall.md',
+            'loc': AEValidationConfig.warningLoc - 300
+          },
+          {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc - 250},
+          {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc - 200},
         ],
-        'sections_present': ['Analysis'], // Missing Generation and Validation
+        'sections_present': ['Workflow'], // Missing Guidelines
         'validation_steps_exists': true,
         'integration_points_defined': true,
         'has_meta_rules': true,
@@ -355,12 +434,7 @@ void main() {
         'context_type': 'project',
         'action': 'install',
         'files_created': [],
-        'sections_present': [
-          'Installation',
-          'Configuration',
-          'Integration',
-          'Validation'
-        ],
+        'sections_present': AEValidationConfig.getRequiredSections('install'),
         'validation_steps_exists': false, // Missing!
         'integration_points_defined': true,
       });
@@ -372,7 +446,7 @@ void main() {
         'context_type': 'project',
         'action': 'uninstall',
         'files_created': [],
-        'sections_present': ['Cleanup', 'Restore', 'Verification'],
+        'sections_present': AEValidationConfig.getRequiredSections('uninstall'),
         'reversibility_included': false, // Missing!
       });
 
@@ -380,12 +454,13 @@ void main() {
     });
 
     test('should handle JSON string inputs', () {
+      final locGood = AEValidationConfig.warningLoc - 100;
       final result = tool.execute({
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created':
-            '[{"path": "ae_bootstrap.md", "loc": 400}, {"path": "ae_install.md", "loc": 350}, {"path": "ae_uninstall.md", "loc": 200}, {"path": "ae_update.md", "loc": 250}, {"path": "ae_use.md", "loc": 300}]',
-        'sections_present': '["Analysis", "Generation", "Validation"]',
+            '[{"path": "ae_bootstrap.md", "loc": $locGood}, {"path": "ae_install.md", "loc": ${AEValidationConfig.warningLoc - 150}}, {"path": "ae_uninstall.md", "loc": ${AEValidationConfig.warningLoc - 300}}, {"path": "ae_update.md", "loc": ${AEValidationConfig.warningLoc - 250}}, {"path": "ae_use.md", "loc": ${AEValidationConfig.warningLoc - 200}}]',
+        'sections_present': '["Workflow", "Guidelines"]',
         'validation_steps_exists': 'true',
         'integration_points_defined': 'true',
         'has_meta_rules': 'true',
@@ -400,7 +475,10 @@ void main() {
         'context_type': 'library',
         'action': 'bootstrap',
         'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': 900}, // Too verbose
+          {
+            'path': 'ae_bootstrap.md',
+            'loc': AEValidationConfig.maxLoc + 100
+          }, // Too verbose
         ],
         'sections_present': [], // Missing sections
         'validation_steps_exists': false,

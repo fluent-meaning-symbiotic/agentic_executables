@@ -1,8 +1,15 @@
+<!--
+version: 1.0.0
+repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
+license: MIT
+author: Arenukvern and contributors
+-->
+
 # AE Bootstrap Context
 
 This document guides AI agents in analyzing, creating, and maintaining Agentic Executable (AE) files for a library. Refer to `ae_context.md` for common terms, principles, and working principles.
 
-## Bootstrap Workflow
+## Workflow
 
 1. **Locate AE Files**: Search for existing AE files in the default path `root/ae_use` (e.g., `ae_install.md`, `ae_uninstall.md`, `ae_update.md`, `ae_use.md`).
 2. **Analyze Codespace**: Review the current codebase, library architecture, dependencies, and structure to identify components and changes (aligning with `ae_context.md` definitions like Installation, Configuration, Integration).
@@ -36,7 +43,7 @@ This document guides AI agents in analyzing, creating, and maintaining Agentic E
        Incorporate minimal, library-specific code snippets, maintenance notes, and ensure alignment with `ae_context.md` for clarity and agent-readability.
 5. **Validate and Test**: Simulate agent execution to verify instructions, check for errors, and ensure seamless integration or removal.
 
-## Agent Guidelines for Bootstrap
+## Guidelines
 
 - **Analysis and Adaptation**: Follow the workflow sequentially; scan the codespace for context and adapt to library specifics while adhering to AE principles from `ae_context.md`.
 - **Creation/Update**: Prioritize creating or updating files based on existence checks, focusing on modularity and reversibility.

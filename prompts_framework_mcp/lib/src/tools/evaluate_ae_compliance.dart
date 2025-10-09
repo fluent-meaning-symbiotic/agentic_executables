@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../ae_validation_config.dart';
+
 /// Tool for evaluating AE implementation compliance with objective metrics.
 class EvaluateAEComplianceTool {
   /// Evaluates implementation using structured metrics and hardcoded scoring.
@@ -105,14 +107,14 @@ class EvaluateAEComplianceTool {
       final filePath = file['path'] as String;
       final loc = file['loc'] as int? ?? 0;
 
-      if (loc > 800) {
+      if (loc > AEValidationConfig.maxLoc) {
         locPass = false;
-        locResults
-            .add('$filePath: $loc LOC (FAIL - too verbose, should be <800)');
-      } else if (loc > 500) {
+        locResults.add(
+            '$filePath: $loc LOC (FAIL - too verbose, should be <${AEValidationConfig.maxLoc})');
+      } else if (loc > AEValidationConfig.warningLoc) {
         locWarning = true;
-        locResults
-            .add('$filePath: $loc LOC (WARNING - consider reducing to <500)');
+        locResults.add(
+            '$filePath: $loc LOC (WARNING - consider reducing to <${AEValidationConfig.warningLoc})');
       } else {
         locResults.add('$filePath: $loc LOC (PASS - concise)');
       }
@@ -222,61 +224,25 @@ class EvaluateAEComplianceTool {
 
   /// Returns required files based on context and action.
   List<String> _getRequiredFiles(String contextType, String action) {
-    if (contextType == 'library') {
-      switch (action) {
-        case 'bootstrap':
-          return [
-            'ae_bootstrap.md',
-            'ae_install.md',
-            'ae_uninstall.md',
-            'ae_update.md',
-            'ae_use.md'
-          ];
-        case 'update':
-          return [
-            'ae_bootstrap.md',
-            'ae_install.md',
-            'ae_uninstall.md',
-            'ae_update.md',
-            'ae_use.md'
-          ];
-        default:
-          return [];
-      }
-    } else {
-      // Project context - no files required to be created
-      return [];
-    }
+    return AEValidationConfig.getRequiredFiles(contextType, action);
   }
 
   /// Returns required sections based on action.
   List<String> _getRequiredSections(String action) {
-    switch (action) {
-      case 'bootstrap':
-        return ['Analysis', 'Generation', 'Validation'];
-      case 'install':
-        return ['Installation', 'Configuration', 'Integration', 'Validation'];
-      case 'uninstall':
-        return ['Cleanup', 'Restore', 'Verification'];
-      case 'update':
-        return ['Migration', 'Validation', 'Rollback'];
-      case 'use':
-        return ['Usage', 'Best Practices'];
-      default:
-        return [];
-    }
+    return AEValidationConfig.getRequiredSections(action);
   }
 
   bool _requiresValidation(String action) =>
-      ['bootstrap', 'install', 'update'].contains(action);
+      AEValidationConfig.requiresValidation(action);
 
   bool _requiresIntegration(String action) =>
-      ['install', 'bootstrap'].contains(action);
+      AEValidationConfig.requiresIntegration(action);
 
   bool _requiresReversibility(String action) =>
-      ['uninstall', 'update'].contains(action);
+      AEValidationConfig.requiresReversibility(action);
 
-  bool _requiresMetaRules(String action) => action == 'bootstrap';
+  bool _requiresMetaRules(String action) =>
+      AEValidationConfig.requiresMetaRules(action);
 
   /// Generates actionable fixes for failed checks.
   List<String> _generateActionableFixes(List<Map<String, dynamic>> results) {

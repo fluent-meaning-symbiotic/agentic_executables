@@ -3,6 +3,7 @@
 /// Provides MCP server implementation for Agentic Executables framework.
 library;
 
+export 'src/ae_validation_config.dart';
 export 'src/resources/ae_documents.dart';
 export 'src/server.dart';
 export 'src/tools/evaluate_ae_compliance.dart';

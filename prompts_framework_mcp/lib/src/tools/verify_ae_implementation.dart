@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../ae_validation_config.dart';
+
 /// Tool for verifying AE implementation with structured metrics.
 class VerifyAEImplementationTool {
   /// Verifies implementation using agent-provided checklist completion.
@@ -114,108 +116,10 @@ class VerifyAEImplementationTool {
     String contextType,
     String action,
   ) {
-    // Core items applicable to all actions
-    final coreItems = [
-      {
-        'key': 'modularity',
-        'name': 'Modularity',
-        'critical': true,
-      },
-      {
-        'key': 'contextual_awareness',
-        'name': 'Contextual Awareness',
-        'critical': true,
-      },
-      {
-        'key': 'agent_empowerment',
-        'name': 'Agent Empowerment',
-        'critical': true,
-      },
+    final items = <Map<String, dynamic>>[
+      ...AEValidationConfig.getCoreChecklistItems(),
+      ...AEValidationConfig.getActionChecklistItems(contextType, action),
     ];
-
-    final items = <Map<String, dynamic>>[...coreItems];
-
-    // Action-specific items
-    if (action == 'install' || action == 'bootstrap') {
-      items.addAll([
-        {
-          'key': 'validation',
-          'name': 'Validation',
-          'critical': true,
-        },
-        {
-          'key': 'integration',
-          'name': 'Integration',
-          'critical': true,
-        },
-      ]);
-    }
-
-    if (action == 'uninstall') {
-      items.addAll([
-        {
-          'key': 'reversibility',
-          'name': 'Reversibility',
-          'critical': true,
-        },
-        {
-          'key': 'cleanup',
-          'name': 'Cleanup',
-          'critical': true,
-        },
-      ]);
-    }
-
-    if (action == 'update') {
-      items.addAll([
-        {
-          'key': 'migration',
-          'name': 'Migration',
-          'critical': true,
-        },
-        {
-          'key': 'backup_rollback',
-          'name': 'Backup/Rollback',
-          'critical': true,
-        },
-      ]);
-    }
-
-    if (action == 'use') {
-      items.addAll([
-        {
-          'key': 'best_practices',
-          'name': 'Best Practices',
-          'critical': false,
-        },
-        {
-          'key': 'anti_patterns',
-          'name': 'Anti-patterns',
-          'critical': false,
-        },
-      ]);
-    }
-
-    if (contextType == 'library' && action == 'bootstrap') {
-      items.addAll([
-        {
-          'key': 'analysis_guidance',
-          'name': 'Analysis Guidance',
-          'critical': true,
-        },
-        {
-          'key': 'file_generation_rules',
-          'name': 'File Generation Rules',
-          'critical': true,
-        },
-        {
-          'key': 'abstraction',
-          'name': 'Abstraction',
-          'critical': true,
-        },
-      ]);
-    }
-
     return items;
   }
 
@@ -260,16 +164,16 @@ class VerifyAEImplementationTool {
 
       total++;
 
-      if (loc > 800) {
+      if (loc > AEValidationConfig.maxLoc) {
         checks.add({
           'item': 'LOC Check: $filePath',
           'key': 'loc_$filePath',
           'status': 'FAIL',
           'critical': true,
           'details':
-              '$loc LOC exceeds maximum (800). Documentation is too verbose.',
+              '$loc LOC exceeds maximum (${AEValidationConfig.maxLoc}). Documentation is too verbose.',
         });
-      } else if (loc > 500) {
+      } else if (loc > AEValidationConfig.warningLoc) {
         passed++;
         checks.add({
           'item': 'LOC Check: $filePath',
@@ -277,7 +181,7 @@ class VerifyAEImplementationTool {
           'status': 'PASS (with warning)',
           'critical': false,
           'details':
-              '$loc LOC is acceptable but consider reducing below 500 for better conciseness.',
+              '$loc LOC is acceptable but consider reducing below ${AEValidationConfig.warningLoc} for better conciseness.',
         });
       } else {
         passed++;
@@ -336,36 +240,12 @@ class VerifyAEImplementationTool {
 
   /// Returns expected files for library actions.
   List<String> _getExpectedFiles(String action) {
-    switch (action) {
-      case 'bootstrap':
-        return [
-          'ae_bootstrap.md',
-          'ae_install.md',
-          'ae_uninstall.md',
-          'ae_update.md',
-          'ae_use.md'
-        ];
-      case 'update':
-        return ['ae_bootstrap.md'];
-      default:
-        return [];
-    }
+    return AEValidationConfig.getExpectedFiles(action);
   }
 
   /// Returns required sections for a specific file.
   List<String> _getRequiredSectionsForFile(String filePath, String action) {
-    if (filePath.contains('install')) {
-      return ['Installation', 'Configuration', 'Integration', 'Validation'];
-    } else if (filePath.contains('uninstall')) {
-      return ['Cleanup', 'Restore', 'Verification'];
-    } else if (filePath.contains('update')) {
-      return ['Migration', 'Validation'];
-    } else if (filePath.contains('bootstrap')) {
-      return ['Analysis', 'Generation', 'Validation'];
-    } else if (filePath.contains('use')) {
-      return ['Usage', 'Best Practices'];
-    }
-    return [];
+    return AEValidationConfig.getRequiredSectionsForFile(filePath, action);
   }
 
   /// Extracts missing items from verification results.
@@ -383,9 +263,10 @@ class VerifyAEImplementationTool {
 
     for (final file in filesModified) {
       final loc = file['loc'] as int? ?? 0;
-      if (loc > 500 && loc <= 800) {
+      if (loc > AEValidationConfig.warningLoc &&
+          loc <= AEValidationConfig.maxLoc) {
         warnings.add(
-          '${file["path"]}: Consider reducing from $loc to <500 LOC for better agent readability',
+          '${file["path"]}: Consider reducing from $loc to <${AEValidationConfig.warningLoc} LOC for better agent readability',
         );
       }
     }

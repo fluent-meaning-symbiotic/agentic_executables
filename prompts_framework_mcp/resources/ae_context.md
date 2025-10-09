@@ -1,3 +1,10 @@
+<!--
+version: 1.0.0
+repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
+license: MIT
+author: Arenukvern and contributors
+-->
+
 # Agentic Executables (AE) Context
 
 ## Definitions
