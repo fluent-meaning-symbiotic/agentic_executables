@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'resources/ae_documents.dart';
 import 'tools/evaluate_ae_compliance.dart';
 import 'tools/get_ae_instructions.dart';
+import 'tools/get_agentic_executable_definition.dart';
 import 'tools/verify_ae_implementation.dart';
 
 /// MCP Server for Agentic Executables Framework.
@@ -15,6 +16,7 @@ import 'tools/verify_ae_implementation.dart';
 base class PromptsFrameworkMCPServer extends MCPServer with ToolsSupport {
   late final AEDocuments _documents;
   late final GetAEInstructionsTool _getInstructionsTool;
+  late final GetAgenticExecutableDefinitionTool _getDefinitionTool;
   late final VerifyAEImplementationTool _verifyTool;
   late final EvaluateAEComplianceTool _evaluateTool;
 
@@ -34,6 +36,7 @@ CONTEXTS & ACTIONS:
 - Actions: bootstrap, install, uninstall, update, use
 
 TOOLS:
+- get_agentic_executable_definition: Get core AE definition and framework overview (use this first if unfamiliar with AE)
 - get_ae_instructions: Retrieve contextual documentation for context+action combination
 - verify_ae_implementation: Generate verification checklist based on AE principles
 - evaluate_ae_compliance: Score implementation compliance with detailed feedback
@@ -54,11 +57,13 @@ This server provides strategic guidance; full documentation comes from tool resp
 
     // Initialize tools
     _getInstructionsTool = GetAEInstructionsTool(_documents);
+    _getDefinitionTool = GetAgenticExecutableDefinitionTool();
     _verifyTool = VerifyAEImplementationTool();
     _evaluateTool = EvaluateAEComplianceTool();
 
     // Register tools
     registerTool(_createGetInstructionsTool(), _handleGetInstructions);
+    registerTool(_createGetDefinitionTool(), _handleGetDefinition);
     registerTool(_createVerifyTool(), _handleVerify);
     registerTool(_createEvaluateTool(), _handleEvaluate);
   }
@@ -120,6 +125,16 @@ This server provides strategic guidance; full documentation comes from tool resp
         ),
       );
 
+  /// Creates the get_agentic_executable_definition tool definition.
+  Tool _createGetDefinitionTool() => Tool(
+        name: 'get_agentic_executable_definition',
+        description:
+            'Retrieves the core Agentic Executable (AE) definition, framework overview, available tools, and core principles. Use this tool when you need to understand what AE is, which contexts and actions are available, or which tools you can use. Essential for agents without access to server instructions.',
+        inputSchema: Schema.object(
+          properties: {},
+        ),
+      );
+
   /// Creates the verify_ae_implementation tool definition.
   Tool _createVerifyTool() => Tool(
         name: 'verify_ae_implementation',
@@ -173,6 +188,14 @@ This server provides strategic guidance; full documentation comes from tool resp
   /// Handles get_ae_instructions tool calls.
   Future<CallToolResult> _handleGetInstructions(CallToolRequest request) async {
     final result = await _getInstructionsTool.execute(request.arguments ?? {});
+    return CallToolResult(
+      content: [TextContent(text: _formatJson(result))],
+    );
+  }
+
+  /// Handles get_agentic_executable_definition tool calls.
+  Future<CallToolResult> _handleGetDefinition(CallToolRequest request) async {
+    final result = _getDefinitionTool.execute(request.arguments ?? {});
     return CallToolResult(
       content: [TextContent(text: _formatJson(result))],
     );
