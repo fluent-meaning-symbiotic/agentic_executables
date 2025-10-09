@@ -2,121 +2,106 @@
 
 Agentic Executable for installing the Prompts Framework MCP Server.
 
-## Prerequisites
+## Repository Setup
 
-Check requirements before installation:
+### Clone from GitHub
 
 ```bash
-# Verify Dart SDK 3.0+
-dart --version
+# Clone and navigate
+git clone https://github.com/fluent-meaning-symbiotic/agentic_executables.git
+cd agentic_executables/prompts_framework_mcp
 
-# Expected: Dart SDK version: 3.0.0 or higher
+# Validate
+test -f pubspec.yaml && echo "✓ Ready" || echo "✗ Failed"
 ```
 
-If Dart SDK missing, install from: https://dart.dev/get-dart
+### If Already Cloned
+
+```bash
+cd /path/to/agentic_executables/prompts_framework_mcp
+git pull origin main
+```
+
+## Prerequisites
+
+Check requirements:
+
+```bash
+# Git 2.0+
+git --version
+
+# Dart SDK 3.0+
+dart --version
+
+# Disk space: ~100MB (repo 5MB + deps 50MB + build 20MB)
+df -h .
+```
+
+**Network required for**: git clone, pub get, registry operations.
 
 ## Installation
 
-### Step 1: Navigate to Package Directory
-
-```bash
-cd prompts_framework_mcp
-```
-
-### Step 2: Install Dependencies
+### Step 1: Install Dependencies
 
 ```bash
 dart pub get
+
+# Validate
+test -f pubspec.lock && test -d .dart_tool && echo "✓ Done" || echo "✗ Failed"
 ```
 
-**Validation**:
+### Step 2: Build Native Binary
 
 ```bash
-# Check pubspec.lock exists
-ls pubspec.lock
-
-# Expected: pubspec.lock file present
-```
-
-### Step 3: Build Native Binary
-
-```bash
-# Create build directory if not exists
-mkdir -p build
-
-# Compile to native executable
-dart compile exe bin/prompts_framework_mcp_server.dart -o build/server
-```
-
-**Validation**:
-
-```bash
-# Verify binary exists and is executable
-ls -lh build/server
-
-# Expected: Executable file ~10-20MB
-```
-
-Alternative: Use build script
-
-```bash
+# Using build script (recommended)
 ./build.sh
+
+# Or manual
+dart compile exe bin/prompts_framework_mcp_server.dart -o build/server
+
+# Validate
+ls -lh build/server
+# Expected: ~15-20MB executable
 ```
 
-### Step 4: Test Server Startup
+### Step 3: Test Server
 
 ```bash
-# Run server (will wait for STDIN input)
-./build/server &
-SERVER_PID=$!
-
-# Give it 2 seconds to start
-sleep 2
-
-# Check if running
-ps -p $SERVER_PID > /dev/null && echo "Server running" || echo "Server failed"
-
-# Stop test server
-kill $SERVER_PID
+timeout 3s ./build/server || echo "✓ Server OK"
 ```
 
 ## Configuration
 
-### MCP Client Setup
+### Get Absolute Server Path
 
-#### Claude Desktop (macOS)
+```bash
+# Get absolute path
+SERVER_PATH="$(pwd)/build/server"
+echo "$SERVER_PATH"
 
-1. Locate config file:
+# Validate
+test -f "$SERVER_PATH" && echo "✓ Valid" || echo "✗ Invalid"
+```
+
+### Locate Claude Desktop Config
 
 ```bash
 # macOS
-CONFIG_PATH="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+CONFIG_FILE="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
 
-# Create if doesn't exist
-mkdir -p "$(dirname "$CONFIG_PATH")"
-touch "$CONFIG_PATH"
+# Windows (PowerShell)
+$CONFIG_FILE = "$env:APPDATA\Claude\claude_desktop_config.json"
+
+# Linux
+CONFIG_FILE="$HOME/.config/Claude/claude_desktop_config.json"
+
+# Create directory if needed
+mkdir -p "$(dirname "$CONFIG_FILE")"
 ```
 
-2. Get absolute path to server:
+### Update Config File
 
-```bash
-# From prompts_framework_mcp directory
-SERVER_PATH="$(pwd)/build/server"
-echo "Server path: $SERVER_PATH"
-```
-
-3. Update config file:
-
-```bash
-# Backup existing config
-cp "$CONFIG_PATH" "$CONFIG_PATH.backup"
-
-# Add server configuration (manual edit required)
-# Open in editor:
-open "$CONFIG_PATH"
-```
-
-Add this configuration:
+Edit `claude_desktop_config.json`:
 
 ```json
 {
@@ -128,239 +113,138 @@ Add this configuration:
 }
 ```
 
-Replace `/absolute/path/to/prompts_framework_mcp/build/server` with your actual `$SERVER_PATH`.
+Replace with your actual absolute path. Use `$(pwd)/build/server` to get it.
 
-#### Claude Desktop (Windows)
+**Important**: Use absolute paths only, not relative (`./`) or home (`~/`).
 
-```powershell
-# Windows config path
-$CONFIG_PATH = "$env:APPDATA\Claude\claude_desktop_config.json"
-
-# Get server path
-$SERVER_PATH = "$(Get-Location)\build\server"
-
-# Edit config
-notepad $CONFIG_PATH
-```
-
-#### Claude Desktop (Linux)
+### Validate Config
 
 ```bash
-# Linux config path
-CONFIG_PATH="$HOME/.config/Claude/claude_desktop_config.json"
+# Check JSON syntax
+python3 -m json.tool "$CONFIG_FILE" > /dev/null && echo "✓ Valid" || echo "✗ Invalid"
 
-# Get server path
-SERVER_PATH="$(pwd)/build/server"
-
-# Edit config
-nano "$CONFIG_PATH"
+# Check entry exists
+grep -q "agentic_executables" "$CONFIG_FILE" && echo "✓ Found" || echo "✗ Missing"
 ```
 
-### Step 5: Restart MCP Client
+### Restart Claude Desktop
+
+**Complete quit** (not just close window):
+
+- macOS: Cmd+Q
+- Windows: Alt+F4
+- Linux: File → Quit
+
+Wait 3s, then relaunch. MCP servers connect at startup only.
+
+## Validation
+
+Test in Claude Desktop:
+
+**1. List tools**:
+
+```
+"What MCP tools are available?"
+```
+
+Expected: 5 tools from agentic_executables server.
+
+**2. Get definition**:
+
+```
+"Use get_agentic_executable_definition"
+```
+
+Expected: AE definition, contexts, actions, principles (< 2s).
+
+**3. Fetch instructions**:
+
+```
+"Use get_ae_instructions with context 'library' and action 'bootstrap'"
+```
+
+Expected: Returns ae_bootstrap.md content (< 3s).
+
+**4. Test registry**:
+
+```
+"Use manage_ae_registry to get python_requests install file"
+```
+
+Expected: Returns ae_install.md for python_requests (< 5s).
+
+## Alternative Methods
+
+**Docker** (no Dart SDK needed):
 
 ```bash
-# Claude Desktop - Quit completely and restart
-# macOS: Cmd+Q then relaunch
-# Windows: Alt+F4 then relaunch
-# Linux: Close window then relaunch
+docker build -t prompts-framework-mcp .
+docker run -i prompts-framework-mcp
 ```
 
-## Integration Validation
+Config: `"command": "docker", "args": ["run", "-i", "prompts-framework-mcp"]`
 
-### Test 1: Check Server Connection
+**Dev mode** (no compilation):
 
-In Claude Desktop, the tools should appear automatically. Test by asking:
-
-```
-"List available MCP tools"
+```bash
+dart run bin/prompts_framework_mcp_server.dart
 ```
 
-Expected tools:
+Config: `"command": "dart", "args": ["run", "/abs/path/bin/prompts_framework_mcp_server.dart"]`
 
-- get_agentic_executable_definition
-- get_ae_instructions
-- verify_ae_implementation
-- evaluate_ae_compliance
-- manage_ae_registry
-
-### Test 2: Call get_agentic_executable_definition
-
-Ask Claude:
-
-```
-"Use the prompts-framework MCP to get the Agentic Executable definition"
-```
-
-Expected: Returns AE definition, contexts, actions, tools, principles.
-
-### Test 3: Call get_ae_instructions
-
-Ask Claude:
-
-```
-"Use get_ae_instructions with context_type 'library' and action 'bootstrap'"
-```
-
-Expected: Returns ae_bootstrap.md and ae_context.md content.
-
-### Test 4: Registry Access Test
-
-Ask Claude:
-
-```
-"Use manage_ae_registry to get ae_install.md for python_requests from the registry"
-```
-
-Expected: Returns installation instructions for python_requests library.
+Note: Slower startup (~2s) but no build step.
 
 ## Troubleshooting
 
-### Issue: Server Won't Start
+**Clone fails**: Check git installed, network connectivity, try SSH: `git clone git@github.com:...`
 
-**Symptom**: Binary doesn't execute or crashes immediately
+**Pub get fails**: Check Dart 3.0+, clear cache: `dart pub cache clean`, retry with `--verbose`
 
-**Solutions**:
+**Build fails**: Check disk space (100MB needed), clean: `rm -rf build/ .dart_tool/`, rebuild
 
-```bash
-# Check Dart version
-dart --version
+**Server won't start**: Check permissions: `chmod +x build/server`, check deps: `ldd build/server` (Linux) or `otool -L build/server` (macOS)
 
-# Rebuild with verbose output
-dart compile exe bin/prompts_framework_mcp_server.dart -o build/server --verbose
+**Tools not showing**:
 
-# Check resources directory exists
-ls resources/
-# Expected: ae_bootstrap.md, ae_context.md, ae_use.md
-```
+- Verify config path: `ls "$CONFIG_FILE"`
+- Check JSON: `python3 -m json.tool "$CONFIG_FILE"`
+- Use absolute paths (not `./` or `~/`)
+- Test server: `./build/server` (should wait for input)
+- Complete quit + relaunch Claude (Cmd+Q on macOS)
 
-### Issue: Tools Not Showing in Claude
+**Registry fails**:
 
-**Symptom**: MCP tools not available in Claude Desktop
+- Check library exists: https://github.com/fluent-meaning-symbiotic/agentic_executables/tree/main/ae_use_registry
+- Use format: `<language>_<library_name>` (e.g., `python_requests`)
+- Test network: `curl -I https://raw.githubusercontent.com/.../README.md`
 
-**Solutions**:
+**Slow performance**: Registry ops are slower (network). Local ops should be < 2s. Use compiled binary, not `dart run`.
 
-```bash
-# Verify config path is correct
-cat "$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+## Success Checklist
 
-# Verify server path is absolute (not relative)
-# BAD:  "./build/server"
-# GOOD: "/Users/username/prompts_framework_mcp/build/server"
+- [ ] Repository cloned/verified
+- [ ] Dart SDK 3.0+, Git 2.0+ installed
+- [ ] `pubspec.lock` and `.dart_tool/` exist
+- [ ] `build/server` exists (~15-20MB)
+- [ ] Server starts without exit
+- [ ] Config has absolute path
+- [ ] Valid JSON in config
+- [ ] Claude completely restarted
+- [ ] 5 tools visible
+- [ ] All validation tests pass
 
-# Check server is executable
-ls -l build/server
-# Expected: -rwxr-xr-x (executable permissions)
-
-# Completely quit and restart Claude Desktop
-# Not just close window - full quit (Cmd+Q on macOS)
-```
-
-### Issue: Registry Fetch Fails
-
-**Symptom**: get_from_registry returns error
-
-**Solutions**:
-
-1. Check library exists in registry:
-
-   - Visit https://github.com/fluent-meaning-symbiotic/agentic_executables
-   - Navigate to ae_use_registry/
-   - Verify library folder exists
-
-2. Check library_id format:
-
-   - Must be: `<language>_<library_name>`
-   - Examples: `python_requests`, `dart_provider`
-   - Not: `requests`, `Python_Requests`
-
-3. Check action is valid:
-   - Valid: `install`, `uninstall`, `update`, `use`
-   - Not valid: `bootstrap` (library-only action)
-
-### Issue: Docker Build Fails
-
-**Symptom**: Docker build command fails
-
-**Solutions**:
+## Uninstall
 
 ```bash
-# Ensure in correct directory
-pwd
-# Expected: .../prompts_framework_mcp
-
-# Check Dockerfile exists
-ls Dockerfile
-
-# Check all resources exist
-ls resources/
-# Expected: ae_bootstrap.md, ae_context.md, ae_use.md
-
-# Build with no cache
-docker build --no-cache -t prompts-framework-mcp:latest .
-
-# Check Docker version
-docker --version
-# Expected: Docker version 20.0.0 or higher
+# Remove from config, restart Claude
+# rm build/server
+# rm -rf .dart_tool/ pubspec.lock
 ```
-
-## Success Criteria
-
-Installation complete when all checks pass:
-
-- [ ] Dart SDK 3.0+ installed and verified
-- [ ] Dependencies installed (pubspec.lock exists)
-- [ ] Native binary compiled (build/server exists)
-- [ ] Server starts without errors
-- [ ] MCP client configured with absolute path
-- [ ] Client restarted completely
-- [ ] All 5 tools visible in client
-- [ ] get_agentic_executable_definition returns data
-- [ ] get_ae_instructions returns documentation
-- [ ] Registry access works (get_from_registry succeeds)
-
-## Next Steps
-
-After successful installation:
-
-1. Read [README.md](README.md) for comprehensive documentation
-2. Review all 5 tool descriptions and examples
-3. Explore registry operations for library management
-4. Test with real library bootstrap or installation
-5. Review [ae_use_registry/CONTRIBUTING.md](../ae_use_registry/CONTRIBUTING.md) for registry submission
-
-## Uninstallation
-
-To remove the MCP server:
-
-```bash
-# Remove from MCP client config
-# Edit claude_desktop_config.json and remove "prompts-framework" entry
-
-# Remove binary
-rm build/server
-
-# Optional: Remove dependencies
-rm -rf .dart_tool/
-rm pubspec.lock
-```
-
-Restart MCP client to complete uninstallation.
 
 ## Support
 
-For issues:
-
-1. Check troubleshooting section above
-2. Verify all prerequisites met
-3. Review logs in MCP client
-4. Check repository issues: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
+Issues: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
 
 ---
 
-**Installation Agent Notes**:
-
-- Use absolute paths, never relative paths in configs
-- Validate each step before proceeding to next
-- Test registry access after installation
-- Ensure client fully restarts (quit, not just close)
-- LOC: ~280 (within conciseness target)
+**Agent Notes**: Use absolute paths. Validate each step. Test registry. Complete restart required. ~100MB disk, network needed.
