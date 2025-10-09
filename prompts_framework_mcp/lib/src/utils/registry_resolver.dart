@@ -1,3 +1,4 @@
+import '../ae_framework_config.dart';
 import 'github_raw_fetcher.dart';
 
 /// Resolves library IDs and paths within the AE registry.
@@ -9,10 +10,12 @@ class RegistryResolver {
 
   RegistryResolver(
     this._fetcher, {
-    this.registryOwner = 'fluent-meaning-symbiotic',
-    this.registryRepo = 'agentic_executables',
-    this.registryBranch = 'main',
-  });
+    String? registryOwner,
+    String? registryRepo,
+    String? registryBranch,
+  })  : registryOwner = registryOwner ?? AEFrameworkConfig.registryOwner,
+        registryRepo = registryRepo ?? AEFrameworkConfig.registryRepo,
+        registryBranch = registryBranch ?? AEFrameworkConfig.defaultBranch;
 
   /// Validates library ID format: `<language>_<library_name>`
   ///
@@ -22,27 +25,20 @@ class RegistryResolver {
   /// - javascript_react ✓
   /// - mylib ✗ (missing language prefix)
   /// - dart_ ✗ (missing library name)
-  bool isValidLibraryId(String libraryId) {
-    final pattern = RegExp(r'^[a-z]+_[a-z0-9_]+$');
-    return pattern.hasMatch(libraryId) && libraryId.split('_').length >= 2;
-  }
+  bool isValidLibraryId(String libraryId) =>
+      AEFrameworkConfig.isValidLibraryId(libraryId);
 
   /// Extracts language from library ID.
   ///
   /// Example: 'dart_provider' -> 'dart'
-  String? extractLanguage(String libraryId) {
-    if (!isValidLibraryId(libraryId)) return null;
-    return libraryId.split('_').first;
-  }
+  String? extractLanguage(String libraryId) =>
+      AEFrameworkConfig.extractLanguage(libraryId);
 
   /// Extracts library name from library ID.
   ///
   /// Example: 'dart_xsoulspace_lints' -> 'xsoulspace_lints'
-  String? extractLibraryName(String libraryId) {
-    if (!isValidLibraryId(libraryId)) return null;
-    final parts = libraryId.split('_');
-    return parts.sublist(1).join('_');
-  }
+  String? extractLibraryName(String libraryId) =>
+      AEFrameworkConfig.extractLibraryName(libraryId);
 
   /// Maps action to corresponding AE filename.
   ///
@@ -50,20 +46,8 @@ class RegistryResolver {
   /// - uninstall -> ae_uninstall.md
   /// - update -> ae_update.md
   /// - use -> ae_use.md
-  String actionToFilename(String action) {
-    switch (action.toLowerCase()) {
-      case 'install':
-        return 'ae_install.md';
-      case 'uninstall':
-        return 'ae_uninstall.md';
-      case 'update':
-        return 'ae_update.md';
-      case 'use':
-        return 'ae_use.md';
-      default:
-        throw ArgumentError('Invalid action: $action');
-    }
-  }
+  String actionToFilename(String action) =>
+      AEFrameworkConfig.getAEFileName(action);
 
   /// Builds the registry path for a library file.
   ///
@@ -74,13 +58,10 @@ class RegistryResolver {
   String getRegistryPath(String libraryId, String action) {
     if (!isValidLibraryId(libraryId)) {
       throw ArgumentError(
-        'Invalid library ID format: $libraryId. '
-        'Expected format: <language>_<library_name>',
+        AEFrameworkConfig.getInvalidLibraryIdError(libraryId),
       );
     }
-
-    final filename = actionToFilename(action);
-    return 'ae_use_registry/$libraryId/$filename';
+    return AEFrameworkConfig.getRegistryFilePath(libraryId, action);
   }
 
   /// Builds the registry folder path for a library.
@@ -91,12 +72,10 @@ class RegistryResolver {
   String getRegistryFolder(String libraryId) {
     if (!isValidLibraryId(libraryId)) {
       throw ArgumentError(
-        'Invalid library ID format: $libraryId. '
-        'Expected format: <language>_<library_name>',
+        AEFrameworkConfig.getInvalidLibraryIdError(libraryId),
       );
     }
-
-    return 'ae_use_registry/$libraryId';
+    return AEFrameworkConfig.getRegistryFolder(libraryId);
   }
 
   /// Checks if a library exists in the registry.
@@ -155,33 +134,18 @@ class RegistryResolver {
   /// [libraryName] - Library name (e.g., 'provider', 'requests')
   ///
   /// Returns a suggested library ID (e.g., 'dart_provider')
-  String suggestLibraryId(String language, String libraryName) {
-    final normalizedLanguage =
-        language.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
-    final normalizedName =
-        libraryName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
-    return '${normalizedLanguage}_$normalizedName';
-  }
+  String suggestLibraryId(String language, String libraryName) =>
+      AEFrameworkConfig.suggestLibraryId(language, libraryName);
 
   /// Validates action name.
   ///
   /// Valid actions: install, uninstall, update, use
-  bool isValidAction(String action) {
-    return getValidActions().contains(action.toLowerCase());
-  }
+  bool isValidAction(String action) =>
+      AEFrameworkConfig.isValidRegistryAction(action);
 
   /// Gets all valid action names.
-  List<String> getValidActions() {
-    return ['install', 'uninstall', 'update', 'use'];
-  }
+  List<String> getValidActions() => AEFrameworkConfig.getValidRegistryActions();
 
   /// Gets all required AE files for a library.
-  List<String> getRequiredFiles() {
-    return [
-      'ae_install.md',
-      'ae_uninstall.md',
-      'ae_update.md',
-      'ae_use.md',
-    ];
-  }
+  List<String> getRequiredFiles() => AEFrameworkConfig.getRequiredAEFiles();
 }

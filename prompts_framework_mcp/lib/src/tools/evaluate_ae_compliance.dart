@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../ae_framework_config.dart';
 import '../ae_validation_config.dart';
 
 /// Tool for evaluating AE implementation compliance with objective metrics.
@@ -26,19 +27,14 @@ class EvaluateAEComplianceTool {
     if (contextType == null || contextType.isEmpty) {
       return _errorResponse('Parameter "context_type" is required');
     }
-    if (!['library', 'project'].contains(contextType)) {
-      return _errorResponse(
-        'Invalid context_type. Must be "library" or "project"',
-      );
+    if (!AEFrameworkConfig.isValidContext(contextType)) {
+      return _errorResponse(AEFrameworkConfig.getInvalidContextError());
     }
     if (action == null || action.isEmpty) {
       return _errorResponse('Parameter "action" is required');
     }
-    if (!['bootstrap', 'install', 'uninstall', 'update', 'use']
-        .contains(action)) {
-      return _errorResponse(
-        'Invalid action. Must be one of: bootstrap, install, uninstall, update, use',
-      );
+    if (!AEFrameworkConfig.isValidAction(action)) {
+      return _errorResponse(AEFrameworkConfig.getInvalidActionError());
     }
 
     final evaluation = _evaluateMetrics(

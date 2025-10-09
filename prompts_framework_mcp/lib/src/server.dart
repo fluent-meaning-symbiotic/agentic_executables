@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dart_mcp/server.dart';
 import 'package:path/path.dart' as path;
 
+import 'ae_framework_config.dart';
 import 'resources/ae_documents.dart';
 import 'tools/evaluate_ae_compliance.dart';
 import 'tools/get_ae_instructions.dart';
@@ -25,10 +26,11 @@ base class PromptsFrameworkMCPServer extends MCPServer with ToolsSupport {
   PromptsFrameworkMCPServer(
     super.channel, {
     String? resourcesPath,
+    String? version,
   }) : super.fromStreamChannel(
           implementation: Implementation(
-            name: 'prompts-framework-mcp',
-            version: '0.1.0',
+            name: AEFrameworkConfig.serverName,
+            version: version ?? '0.1.0',
           ),
           instructions: '''
 Agentic Executables (AE): Libraries/packages managed by AI agents as executable programs for installation, configuration, usage, and uninstallation.
@@ -112,18 +114,12 @@ This server provides strategic guidance; full documentation comes from tool resp
             'context_type': Schema.string(
               description:
                   'Context: "library" for maintaining AE files, "project" for using AE in projects',
-              enumValues: ['library', 'project'],
+              enumValues: AEFrameworkConfig.getValidContexts(),
             ),
             'action': Schema.string(
               description:
                   'Action to perform: bootstrap (library only), install, uninstall, update, or use',
-              enumValues: [
-                'bootstrap',
-                'install',
-                'uninstall',
-                'update',
-                'use'
-              ],
+              enumValues: AEFrameworkConfig.getValidActions(),
             ),
           },
           required: ['context_type', 'action'],
@@ -174,17 +170,11 @@ Expected input format:
           properties: {
             'context_type': Schema.string(
               description: 'Context: "library" or "project"',
-              enumValues: ['library', 'project'],
+              enumValues: AEFrameworkConfig.getValidContexts(),
             ),
             'action': Schema.string(
               description: 'Action that was performed',
-              enumValues: [
-                'bootstrap',
-                'install',
-                'uninstall',
-                'update',
-                'use'
-              ],
+              enumValues: AEFrameworkConfig.getValidActions(),
             ),
             'files_modified': Schema.string(
               description:
@@ -225,17 +215,11 @@ LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
           properties: {
             'context_type': Schema.string(
               description: 'Context: "library" or "project"',
-              enumValues: ['library', 'project'],
+              enumValues: AEFrameworkConfig.getValidContexts(),
             ),
             'action': Schema.string(
               description: 'Action that was performed',
-              enumValues: [
-                'bootstrap',
-                'install',
-                'uninstall',
-                'update',
-                'use'
-              ],
+              enumValues: AEFrameworkConfig.getValidActions(),
             ),
             'files_created': Schema.string(
               description:
@@ -318,11 +302,7 @@ Use bootstrap_local_registry to create registry structure for internal libraries
           properties: {
             'operation': Schema.string(
               description: 'Operation type',
-              enumValues: [
-                'submit_to_registry',
-                'get_from_registry',
-                'bootstrap_local_registry'
-              ],
+              enumValues: AEFrameworkConfig.getValidRegistryOperations(),
             ),
             'library_url': Schema.string(
               description:
@@ -339,7 +319,7 @@ Use bootstrap_local_registry to create registry structure for internal libraries
             'action': Schema.string(
               description:
                   'Action to fetch from registry (for get_from_registry)',
-              enumValues: ['install', 'uninstall', 'update', 'use'],
+              enumValues: AEFrameworkConfig.getValidRegistryActions(),
             ),
             'ae_use_path': Schema.string(
               description:

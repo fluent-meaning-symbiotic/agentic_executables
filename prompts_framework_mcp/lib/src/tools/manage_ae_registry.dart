@@ -1,3 +1,4 @@
+import '../ae_framework_config.dart';
 import '../utils/github_raw_fetcher.dart';
 import '../utils/registry_resolver.dart';
 
@@ -18,6 +19,12 @@ class ManageAERegistryTool {
       return _errorResponse('Parameter "operation" is required');
     }
 
+    if (!AEFrameworkConfig.isValidRegistryOperation(operation)) {
+      return _errorResponse(
+        AEFrameworkConfig.getInvalidRegistryOperationError(),
+      );
+    }
+
     switch (operation) {
       case 'submit_to_registry':
         return await _handleSubmit(params);
@@ -27,7 +34,7 @@ class ManageAERegistryTool {
         return await _handleBootstrapLocal(params);
       default:
         return _errorResponse(
-          'Invalid operation. Must be one of: submit_to_registry, get_from_registry, bootstrap_local_registry',
+          AEFrameworkConfig.getInvalidRegistryOperationError(),
         );
     }
   }
@@ -57,7 +64,7 @@ class ManageAERegistryTool {
     // Validate library ID format
     if (!_resolver.isValidLibraryId(libraryId)) {
       return _errorResponse(
-        'Invalid library_id format. Expected: <language>_<library_name> (e.g., dart_provider)',
+        AEFrameworkConfig.getInvalidLibraryIdError(libraryId),
       );
     }
 
@@ -118,8 +125,7 @@ class ManageAERegistryTool {
       'success': true,
       'library_id': libraryId,
       'registry_folder': registryFolder,
-      'registry_repo_url':
-          'https://github.com/${_resolver.registryOwner}/${_resolver.registryRepo}',
+      'registry_repo_url': AEFrameworkConfig.getRegistryUrl(),
       'pr_instructions': prInstructions,
       'files_to_copy': filesToCopy,
       'status': status,
@@ -147,14 +153,14 @@ class ManageAERegistryTool {
     // Validate library ID format
     if (!_resolver.isValidLibraryId(libraryId)) {
       return _errorResponse(
-        'Invalid library_id format. Expected: <language>_<library_name>',
+        AEFrameworkConfig.getInvalidLibraryIdError(libraryId),
       );
     }
 
     // Validate action
     if (!_resolver.isValidAction(action)) {
       return _errorResponse(
-        'Invalid action. Must be one of: ${_resolver.getValidActions().join(", ")}',
+        AEFrameworkConfig.getInvalidRegistryActionError(),
       );
     }
 

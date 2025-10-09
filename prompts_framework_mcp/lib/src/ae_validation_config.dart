@@ -1,17 +1,21 @@
+import 'ae_framework_config.dart';
+
 /// Centralized configuration for AE validation and compliance checking.
+///
+/// Note: This class focuses on validation-specific logic. For general framework
+/// configuration (contexts, actions, registry settings), use AEFrameworkConfig.
 class AEValidationConfig {
   /// Current AE specification version
   static const String currentVersion = '1.0.0';
 
   /// AE repository URL
-  static const String repositoryUrl =
-      'https://github.com/fluent-meaning-symbiotic/agentic_executables';
+  static String get repositoryUrl => AEFrameworkConfig.repositoryUrl;
 
   /// License type
-  static const String license = 'MIT';
+  static String get license => AEFrameworkConfig.license;
 
   /// Author information
-  static const String author = 'Arenukvern and contributors';
+  static String get author => AEFrameworkConfig.author;
 
   /// LOC thresholds for documentation
   static const int maxLoc = 800;

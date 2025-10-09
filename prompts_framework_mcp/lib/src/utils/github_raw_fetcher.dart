@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../ae_framework_config.dart';
+
 /// Fetches files from GitHub repositories using raw.githubusercontent.com
 /// without requiring authentication (public repos only).
 class GitHubRawFetcher {
@@ -21,8 +23,9 @@ class GitHubRawFetcher {
     String owner,
     String repo,
     String path, {
-    String branch = 'main',
+    String? branch,
   }) async {
+    branch ??= AEFrameworkConfig.defaultBranch;
     final url = buildRawUrl(owner, repo, path, branch);
 
     try {
@@ -35,7 +38,7 @@ class GitHubRawFetcher {
         return content;
       } else if (response.statusCode == 404) {
         // Try 'master' branch if 'main' fails
-        if (branch == 'main') {
+        if (branch == AEFrameworkConfig.defaultBranch) {
           return fetchFile(owner, repo, path, branch: 'master');
         }
         throw HttpException(
@@ -67,12 +70,7 @@ class GitHubRawFetcher {
   }) async {
     final repoInfo = _parseGitHubUrl(repoUrl);
     final files = <String, String>{};
-    final fileNames = [
-      'ae_install.md',
-      'ae_uninstall.md',
-      'ae_update.md',
-      'ae_use.md',
-    ];
+    final fileNames = AEFrameworkConfig.getRequiredAEFiles();
 
     // Normalize path (remove leading/trailing slashes)
     final normalizedPath = aePath.replaceAll(RegExp(r'^/+|/+$'), '');
@@ -85,7 +83,7 @@ class GitHubRawFetcher {
           repoInfo['owner']!,
           repoInfo['repo']!,
           filePath,
-          branch: repoInfo['branch'] ?? 'main',
+          branch: repoInfo['branch'],
         );
         files[fileName] = content;
       } catch (e) {
@@ -106,9 +104,7 @@ class GitHubRawFetcher {
   ///
   /// Returns the complete raw.githubusercontent.com URL.
   String buildRawUrl(String owner, String repo, String path, String branch) {
-    // Remove leading slash from path if present
-    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    return 'https://raw.githubusercontent.com/$owner/$repo/$branch/$cleanPath';
+    return AEFrameworkConfig.buildGitHubRawUrl(owner, repo, path, branch);
   }
 
   /// Checks if a library exists in the registry by attempting to fetch its README.
@@ -120,15 +116,15 @@ class GitHubRawFetcher {
   /// Returns true if the library folder exists in the registry.
   Future<bool> libraryExistsInRegistry(
     String libraryId, {
-    String registryOwner = 'fluent-meaning-symbiotic',
-    String registryRepo = 'agentic_executables',
-    String branch = 'main',
+    String? registryOwner,
+    String? registryRepo,
+    String? branch,
   }) async {
     try {
       await fetchFile(
-        registryOwner,
-        registryRepo,
-        'ae_use_registry/$libraryId/README.md',
+        registryOwner ?? AEFrameworkConfig.registryOwner,
+        registryRepo ?? AEFrameworkConfig.registryRepo,
+        '${AEFrameworkConfig.registryBasePath}/$libraryId/README.md',
         branch: branch,
       );
       return true;

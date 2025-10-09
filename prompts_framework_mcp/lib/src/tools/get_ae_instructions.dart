@@ -1,3 +1,4 @@
+import '../ae_framework_config.dart';
 import '../resources/ae_documents.dart';
 
 /// Tool for retrieving AE instructions based on context and action.
@@ -20,16 +21,11 @@ class GetAEInstructionsTool {
     }
 
     // Validate enum values
-    if (!['library', 'project'].contains(contextType)) {
-      return _errorResponse(
-        'Invalid context_type. Must be "library" or "project"',
-      );
+    if (!AEFrameworkConfig.isValidContext(contextType)) {
+      return _errorResponse(AEFrameworkConfig.getInvalidContextError());
     }
-    if (!['bootstrap', 'install', 'uninstall', 'update', 'use']
-        .contains(action)) {
-      return _errorResponse(
-        'Invalid action. Must be one of: bootstrap, install, uninstall, update, use',
-      );
+    if (!AEFrameworkConfig.isValidAction(action)) {
+      return _errorResponse(AEFrameworkConfig.getInvalidActionError());
     }
 
     try {
