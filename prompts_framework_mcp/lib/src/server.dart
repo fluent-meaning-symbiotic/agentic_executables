@@ -26,8 +26,27 @@ base class PromptsFrameworkMCPServer extends MCPServer with ToolsSupport {
             name: 'prompts-framework-mcp',
             version: '0.1.0',
           ),
-          instructions:
-              'Strategic guidance tool for AI agents managing Agentic Executables (AE) framework',
+          instructions: '''
+Agentic Executables (AE): Libraries/packages managed by AI agents as executable programs for installation, configuration, usage, and uninstallation.
+
+CONTEXTS & ACTIONS:
+- Contexts: "library" (maintain AE files) | "project" (use AE in projects)
+- Actions: bootstrap, install, uninstall, update, use
+
+TOOLS:
+- get_ae_instructions: Retrieve contextual documentation for context+action combination
+- verify_ae_implementation: Generate verification checklist based on AE principles
+- evaluate_ae_compliance: Score implementation compliance with detailed feedback
+
+USAGE:
+Library maintainers: Call get_ae_instructions(context="library", action="bootstrap"|"update") to create/maintain AE files.
+Project developers: Call get_ae_instructions(context="project", action="install"|"uninstall"|"update"|"use") to integrate libraries as AE.
+After implementation: Call verify_ae_implementation for checklist, then evaluate_ae_compliance for scoring.
+
+CORE PRINCIPLES: Agent Empowerment, Modularity, Contextual Awareness, Reversibility, Validation, Documentation Focus.
+
+This server provides strategic guidance; full documentation comes from tool responses.
+''',
         ) {
     // Determine resources path
     final resolvedPath = resourcesPath ?? _defaultResourcesPath();
