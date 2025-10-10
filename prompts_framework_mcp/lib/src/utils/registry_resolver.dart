@@ -3,19 +3,18 @@ import 'github_raw_fetcher.dart';
 
 /// Resolves library IDs and paths within the AE registry.
 class RegistryResolver {
+  RegistryResolver(
+    this._fetcher, {
+    final String? registryOwner,
+    final String? registryRepo,
+    final String? registryBranch,
+  })  : registryOwner = registryOwner ?? AEFrameworkConfig.registryOwner,
+        registryRepo = registryRepo ?? AEFrameworkConfig.registryRepo,
+        registryBranch = registryBranch ?? AEFrameworkConfig.defaultBranch;
   final GitHubRawFetcher _fetcher;
   final String registryOwner;
   final String registryRepo;
   final String registryBranch;
-
-  RegistryResolver(
-    this._fetcher, {
-    String? registryOwner,
-    String? registryRepo,
-    String? registryBranch,
-  })  : registryOwner = registryOwner ?? AEFrameworkConfig.registryOwner,
-        registryRepo = registryRepo ?? AEFrameworkConfig.registryRepo,
-        registryBranch = registryBranch ?? AEFrameworkConfig.defaultBranch;
 
   /// Validates library ID format: `<language>_<library_name>`
   ///
@@ -25,19 +24,19 @@ class RegistryResolver {
   /// - javascript_react ✓
   /// - mylib ✗ (missing language prefix)
   /// - dart_ ✗ (missing library name)
-  bool isValidLibraryId(String libraryId) =>
+  bool isValidLibraryId(final String libraryId) =>
       AEFrameworkConfig.isValidLibraryId(libraryId);
 
   /// Extracts language from library ID.
   ///
   /// Example: 'dart_provider' -> 'dart'
-  String? extractLanguage(String libraryId) =>
+  String? extractLanguage(final String libraryId) =>
       AEFrameworkConfig.extractLanguage(libraryId);
 
   /// Extracts library name from library ID.
   ///
   /// Example: 'dart_xsoulspace_lints' -> 'xsoulspace_lints'
-  String? extractLibraryName(String libraryId) =>
+  String? extractLibraryName(final String libraryId) =>
       AEFrameworkConfig.extractLibraryName(libraryId);
 
   /// Maps action to corresponding AE filename.
@@ -46,7 +45,7 @@ class RegistryResolver {
   /// - uninstall -> ae_uninstall.md
   /// - update -> ae_update.md
   /// - use -> ae_use.md
-  String actionToFilename(String action) =>
+  String actionToFilename(final String action) =>
       AEFrameworkConfig.getAEFileName(action);
 
   /// Builds the registry path for a library file.
@@ -55,7 +54,7 @@ class RegistryResolver {
   /// [action] - Action name (install, uninstall, update, use)
   ///
   /// Returns path like: 'ae_use_registry/dart_provider/ae_install.md'
-  String getRegistryPath(String libraryId, String action) {
+  String getRegistryPath(final String libraryId, final String action) {
     if (!isValidLibraryId(libraryId)) {
       throw ArgumentError(
         AEFrameworkConfig.getInvalidLibraryIdError(libraryId),
@@ -69,7 +68,7 @@ class RegistryResolver {
   /// [libraryId] - Library identifier
   ///
   /// Returns path like: 'ae_use_registry/dart_provider'
-  String getRegistryFolder(String libraryId) {
+  String getRegistryFolder(final String libraryId) {
     if (!isValidLibraryId(libraryId)) {
       throw ArgumentError(
         AEFrameworkConfig.getInvalidLibraryIdError(libraryId),
@@ -83,10 +82,10 @@ class RegistryResolver {
   /// [libraryId] - Library identifier to check
   ///
   /// Returns true if the library folder exists in the registry.
-  Future<bool> libraryExistsInRegistry(String libraryId) async {
+  Future<bool> libraryExistsInRegistry(final String libraryId) async {
     if (!isValidLibraryId(libraryId)) return false;
 
-    return await _fetcher.libraryExistsInRegistry(
+    return _fetcher.libraryExistsInRegistry(
       libraryId,
       registryOwner: registryOwner,
       registryRepo: registryRepo,
@@ -101,10 +100,11 @@ class RegistryResolver {
   ///
   /// Returns the file content.
   /// Throws [Exception] if file not found or network error.
-  Future<String> fetchRegistryFile(String libraryId, String action) async {
+  Future<String> fetchRegistryFile(
+      final String libraryId, final String action) async {
     final path = getRegistryPath(libraryId, action);
 
-    return await _fetcher.fetchFile(
+    return _fetcher.fetchFile(
       registryOwner,
       registryRepo,
       path,
@@ -118,7 +118,7 @@ class RegistryResolver {
   /// [action] - Action name
   ///
   /// Returns the complete GitHub raw URL.
-  String buildRegistryUrl(String libraryId, String action) {
+  String buildRegistryUrl(final String libraryId, final String action) {
     final path = getRegistryPath(libraryId, action);
     return _fetcher.buildRawUrl(
       registryOwner,
@@ -134,13 +134,13 @@ class RegistryResolver {
   /// [libraryName] - Library name (e.g., 'provider', 'requests')
   ///
   /// Returns a suggested library ID (e.g., 'dart_provider')
-  String suggestLibraryId(String language, String libraryName) =>
+  String suggestLibraryId(final String language, final String libraryName) =>
       AEFrameworkConfig.suggestLibraryId(language, libraryName);
 
   /// Validates action name.
   ///
   /// Valid actions: install, uninstall, update, use
-  bool isValidAction(String action) =>
+  bool isValidAction(final String action) =>
       AEFrameworkConfig.isValidRegistryAction(action);
 
   /// Gets all valid action names.

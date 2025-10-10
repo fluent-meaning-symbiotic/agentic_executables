@@ -4,15 +4,15 @@ import '../utils/registry_resolver.dart';
 
 /// Tool for managing the AE registry - submit libraries and fetch library files.
 class ManageAERegistryTool {
-  final GitHubRawFetcher _fetcher;
-  final RegistryResolver _resolver;
-
   ManageAERegistryTool()
       : _fetcher = GitHubRawFetcher(),
         _resolver = RegistryResolver(GitHubRawFetcher());
+  final GitHubRawFetcher _fetcher;
+  final RegistryResolver _resolver;
 
   /// Executes the tool based on the operation type.
-  Future<Map<String, dynamic>> execute(Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>> execute(
+      final Map<String, dynamic> params) async {
     final operation = params['operation'] as String?;
 
     if (operation == null || operation.isEmpty) {
@@ -27,11 +27,11 @@ class ManageAERegistryTool {
 
     switch (operation) {
       case 'submit_to_registry':
-        return await _handleSubmit(params);
+        return _handleSubmit(params);
       case 'get_from_registry':
-        return await _handleGet(params);
+        return _handleGet(params);
       case 'bootstrap_local_registry':
-        return await _handleBootstrapLocal(params);
+        return _handleBootstrapLocal(params);
       default:
         return _errorResponse(
           AEFrameworkConfig.getInvalidRegistryOperationError(),
@@ -44,7 +44,7 @@ class ManageAERegistryTool {
   /// Generates PR instructions and file mappings for submitting a library
   /// to the registry.
   Future<Map<String, dynamic>> _handleSubmit(
-    Map<String, dynamic> params,
+    final Map<String, dynamic> params,
   ) async {
     final libraryUrl = params['library_url'] as String?;
     final libraryId = params['library_id'] as String?;
@@ -72,16 +72,18 @@ class ManageAERegistryTool {
     List<String> filesList;
     if (aeUseFiles is String) {
       try {
-        final parsed = aeUseFiles.split(',').map((e) => e.trim()).toList();
+        final parsed =
+            aeUseFiles.split(',').map((final e) => e.trim()).toList();
         filesList = parsed;
       } catch (e) {
-        return _errorResponse('Invalid ae_use_files format: ${e.toString()}');
+        return _errorResponse('Invalid ae_use_files format: $e');
       }
     } else if (aeUseFiles is List) {
-      filesList = aeUseFiles.map((e) => e.toString()).toList();
+      filesList = aeUseFiles.map((final e) => e.toString()).toList();
     } else {
       return _errorResponse(
-          'ae_use_files must be a list or comma-separated string');
+        'ae_use_files must be a list or comma-separated string',
+      );
     }
 
     // Check if library already exists in registry
@@ -138,7 +140,8 @@ class ManageAERegistryTool {
   /// Handles get_from_registry operation for developers.
   ///
   /// Fetches AE files directly from the registry and returns content.
-  Future<Map<String, dynamic>> _handleGet(Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>> _handleGet(
+      final Map<String, dynamic> params) async {
     final libraryId = params['library_id'] as String?;
     final action = params['action'] as String?;
 
@@ -188,7 +191,7 @@ class ManageAERegistryTool {
       };
     } catch (e) {
       return _errorResponse(
-        'Failed to fetch ${_resolver.actionToFilename(action)} for $libraryId: ${e.toString()}',
+        'Failed to fetch ${_resolver.actionToFilename(action)} for $libraryId: $e',
       );
     }
   }
@@ -197,7 +200,7 @@ class ManageAERegistryTool {
   ///
   /// Provides instructions for setting up a local registry structure.
   Future<Map<String, dynamic>> _handleBootstrapLocal(
-    Map<String, dynamic> params,
+    final Map<String, dynamic> params,
   ) async {
     final aeUsePath = params['ae_use_path'] as String?;
 
@@ -278,7 +281,8 @@ Use the get_from_registry operation to verify files are accessible.
   }
 
   /// Generates README.md content for a library entry.
-  String _generateReadmeContent(String libraryUrl, String libraryId) {
+  String _generateReadmeContent(
+      final String libraryUrl, final String libraryId) {
     final language = _resolver.extractLanguage(libraryId);
     final libraryName = _resolver.extractLibraryName(libraryId);
 
@@ -305,10 +309,10 @@ $language library: $libraryName
 
   /// Generates PR submission instructions.
   String _generatePRInstructions({
-    required String libraryId,
-    required String libraryUrl,
-    required String registryFolder,
-    required String status,
+    required final String libraryId,
+    required final String libraryUrl,
+    required final String registryFolder,
+    required final String status,
   }) {
     final action = status == 'new' ? 'Add' : 'Update';
 
@@ -403,12 +407,10 @@ Action: install|uninstall|update|use
   }
 
   /// Creates an error response.
-  Map<String, dynamic> _errorResponse(String message) {
-    return {
-      'success': false,
-      'error': message,
-    };
-  }
+  Map<String, dynamic> _errorResponse(final String message) => {
+        'success': false,
+        'error': message,
+      };
 
   /// Closes resources.
   void close() {

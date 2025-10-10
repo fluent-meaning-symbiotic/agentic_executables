@@ -6,7 +6,7 @@ import '../ae_validation_config.dart';
 /// Tool for verifying AE implementation with structured metrics.
 class VerifyAEImplementationTool {
   /// Verifies implementation using agent-provided checklist completion.
-  Map<String, dynamic> execute(Map<String, dynamic> params) {
+  Map<String, dynamic> execute(final Map<String, dynamic> params) {
     final contextType = params['context_type'] as String?;
     final action = params['action'] as String?;
 
@@ -53,10 +53,10 @@ class VerifyAEImplementationTool {
 
   /// Verifies implementation against required checklist.
   Map<String, dynamic> _verifyImplementation({
-    required String contextType,
-    required String action,
-    required List filesModified,
-    required Map checklistCompleted,
+    required final String contextType,
+    required final String action,
+    required final List filesModified,
+    required final Map checklistCompleted,
   }) {
     final results = <Map<String, dynamic>>[];
     var passCount = 0;
@@ -109,8 +109,8 @@ class VerifyAEImplementationTool {
 
   /// Returns required checklist items based on context and action.
   List<Map<String, dynamic>> _getRequiredChecklistItems(
-    String contextType,
-    String action,
+    final String contextType,
+    final String action,
   ) {
     final items = <Map<String, dynamic>>[
       ...AEValidationConfig.getCoreChecklistItems(),
@@ -121,9 +121,9 @@ class VerifyAEImplementationTool {
 
   /// Verifies file structure and LOC thresholds.
   Map<String, dynamic> _verifyFileStructure(
-    String contextType,
-    String action,
-    List filesModified,
+    final String contextType,
+    final String action,
+    final List filesModified,
   ) {
     final checks = <Map<String, dynamic>>[];
     var passed = 0;
@@ -135,7 +135,7 @@ class VerifyAEImplementationTool {
 
       for (final expectedFile in expectedFiles) {
         final fileExists = filesModified.any(
-          (f) => f['path'] == expectedFile,
+          (final f) => f['path'] == expectedFile,
         );
 
         total++;
@@ -200,8 +200,9 @@ class VerifyAEImplementationTool {
         final requiredSections = _getRequiredSectionsForFile(filePath, action);
 
         if (requiredSections.isNotEmpty) {
-          final missingSections =
-              requiredSections.where((s) => !sections.contains(s)).toList();
+          final missingSections = requiredSections
+              .where((final s) => !sections.contains(s))
+              .toList();
 
           total++;
 
@@ -235,26 +236,24 @@ class VerifyAEImplementationTool {
   }
 
   /// Returns expected files for library actions.
-  List<String> _getExpectedFiles(String action) {
-    return AEValidationConfig.getExpectedFiles(action);
-  }
+  List<String> _getExpectedFiles(final String action) =>
+      AEValidationConfig.getExpectedFiles(action);
 
   /// Returns required sections for a specific file.
-  List<String> _getRequiredSectionsForFile(String filePath, String action) {
-    return AEValidationConfig.getRequiredSectionsForFile(filePath, action);
-  }
+  List<String> _getRequiredSectionsForFile(
+          final String filePath, final String action) =>
+      AEValidationConfig.getRequiredSectionsForFile(filePath, action);
 
   /// Extracts missing items from verification results.
-  List<String> _getMissingItems(List<Map<String, dynamic>> results) {
-    return results
-        .where((r) => r['status'] != 'PASS' && r['critical'] == true)
-        .map((r) => '${r["item"]}: ${r["details"]}')
-        .toList()
-        .cast<String>();
-  }
+  List<String> _getMissingItems(final List<Map<String, dynamic>> results) =>
+      results
+          .where((final r) => r['status'] != 'PASS' && r['critical'] == true)
+          .map((final r) => '${r["item"]}: ${r["details"]}')
+          .toList()
+          .cast<String>();
 
   /// Generates warnings for non-critical issues.
-  List<String> _getWarnings(List filesModified) {
+  List<String> _getWarnings(final List filesModified) {
     final warnings = <String>[];
 
     for (final file in filesModified) {
@@ -270,15 +269,13 @@ class VerifyAEImplementationTool {
     return warnings;
   }
 
-  Map<String, dynamic> _errorResponse(String message) {
-    return {
-      'success': false,
-      'error': message,
-    };
-  }
+  Map<String, dynamic> _errorResponse(final String message) => {
+        'success': false,
+        'error': message,
+      };
 
   /// Parses a parameter that can be either a List or a JSON string.
-  List _parseList(dynamic value) {
+  List _parseList(final value) {
     if (value == null) return [];
     if (value is List) return value;
     if (value is String) {
@@ -293,7 +290,7 @@ class VerifyAEImplementationTool {
   }
 
   /// Parses a parameter that can be either a Map or a JSON string.
-  Map _parseMap(dynamic value) {
+  Map _parseMap(final value) {
     if (value == null) return {};
     if (value is Map) return value;
     if (value is String) {
