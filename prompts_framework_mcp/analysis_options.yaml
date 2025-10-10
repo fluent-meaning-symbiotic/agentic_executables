@@ -1,7 +1,14 @@
-include: package:lints/recommended.yaml
+include: package:xsoulspace_lints/library.yaml
 
+# Custom rules for this MCP server project
 linter:
   rules:
-    - prefer_single_quotes
-    - prefer_const_constructors
-    - avoid_print
+    # Disabled rules - justified for this project:
+    # MCP server requires dynamic JSON parsing from tool parameters
+    avoid_dynamic_calls: false
+    # Async I/O is intentional for non-blocking file operations
+    avoid_slow_async_io: false
+    # Allow static-only classes for configuration/utilities
+    avoid_classes_with_only_static_members: false
+    # Relax line length for generated JSON strings
+    lines_longer_than_80_chars: false

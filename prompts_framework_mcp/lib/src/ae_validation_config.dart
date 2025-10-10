@@ -22,7 +22,8 @@ class AEValidationConfig {
   static const int warningLoc = 500;
 
   /// Returns required files based on context and action.
-  static List<String> getRequiredFiles(String contextType, String action) {
+  static List<String> getRequiredFiles(
+      final String contextType, final String action) {
     if (contextType == 'library') {
       switch (action) {
         case 'bootstrap':
@@ -32,7 +33,7 @@ class AEValidationConfig {
             'ae_install.md',
             'ae_uninstall.md',
             'ae_update.md',
-            'ae_use.md'
+            'ae_use.md',
           ];
         default:
           return [];
@@ -42,7 +43,7 @@ class AEValidationConfig {
   }
 
   /// Returns required sections based on action.
-  static List<String> getRequiredSections(String action) {
+  static List<String> getRequiredSections(final String action) {
     switch (action) {
       case 'bootstrap':
         return ['Workflow', 'Guidelines'];
@@ -61,8 +62,8 @@ class AEValidationConfig {
 
   /// Returns required sections for a specific file path.
   static List<String> getRequiredSectionsForFile(
-    String filePath,
-    String action,
+    final String filePath,
+    final String action,
   ) {
     if (filePath.contains('install')) {
       return ['Setup', 'Config', 'Integration', 'Validation'];
@@ -79,7 +80,7 @@ class AEValidationConfig {
   }
 
   /// Returns expected files for library actions.
-  static List<String> getExpectedFiles(String action) {
+  static List<String> getExpectedFiles(final String action) {
     switch (action) {
       case 'bootstrap':
         return [
@@ -87,7 +88,7 @@ class AEValidationConfig {
           'ae_install.md',
           'ae_uninstall.md',
           'ae_update.md',
-          'ae_use.md'
+          'ae_use.md',
         ];
       case 'update':
         return ['ae_bootstrap.md'];
@@ -97,30 +98,28 @@ class AEValidationConfig {
   }
 
   /// Returns core checklist items applicable to all actions.
-  static List<Map<String, dynamic>> getCoreChecklistItems() {
-    return [
-      {
-        'key': 'modularity',
-        'name': 'Modularity',
-        'critical': true,
-      },
-      {
-        'key': 'contextual_awareness',
-        'name': 'Contextual Awareness',
-        'critical': true,
-      },
-      {
-        'key': 'agent_empowerment',
-        'name': 'Agent Empowerment',
-        'critical': true,
-      },
-    ];
-  }
+  static List<Map<String, dynamic>> getCoreChecklistItems() => [
+        {
+          'key': 'modularity',
+          'name': 'Modularity',
+          'critical': true,
+        },
+        {
+          'key': 'contextual_awareness',
+          'name': 'Contextual Awareness',
+          'critical': true,
+        },
+        {
+          'key': 'agent_empowerment',
+          'name': 'Agent Empowerment',
+          'critical': true,
+        },
+      ];
 
   /// Returns action-specific checklist items.
   static List<Map<String, dynamic>> getActionChecklistItems(
-    String contextType,
-    String action,
+    final String contextType,
+    final String action,
   ) {
     final items = <Map<String, dynamic>>[];
 
@@ -208,17 +207,17 @@ class AEValidationConfig {
   }
 
   /// Checks if validation is required for the action.
-  static bool requiresValidation(String action) =>
+  static bool requiresValidation(final String action) =>
       ['bootstrap', 'install', 'update'].contains(action);
 
   /// Checks if integration is required for the action.
-  static bool requiresIntegration(String action) =>
+  static bool requiresIntegration(final String action) =>
       ['install', 'bootstrap'].contains(action);
 
   /// Checks if reversibility is required for the action.
-  static bool requiresReversibility(String action) =>
+  static bool requiresReversibility(final String action) =>
       ['uninstall', 'update'].contains(action);
 
   /// Checks if meta-rules are required for the action.
-  static bool requiresMetaRules(String action) => action == 'bootstrap';
+  static bool requiresMetaRules(final String action) => action == 'bootstrap';
 }

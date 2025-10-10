@@ -6,7 +6,7 @@ import 'package:prompts_framework_mcp/src/server.dart';
 
 /// Entry point for the Prompts Framework MCP Server.
 /// Communicates via STDIO transport for MCP protocol.
-Future<void> main(List<String> args) async {
+Future<void> main(final List<String> args) async {
   // Get version from config
   final version = await AEFrameworkConfig.getVersion();
 

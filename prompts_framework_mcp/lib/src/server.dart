@@ -16,17 +16,10 @@ import 'tools/verify_ae_implementation.dart';
 /// MCP Server for Agentic Executables Framework.
 /// Provides strategic guidance tools for AI agents managing AE.
 base class PromptsFrameworkMCPServer extends MCPServer with ToolsSupport {
-  late final AEDocuments _documents;
-  late final GetAEInstructionsTool _getInstructionsTool;
-  late final GetAgenticExecutableDefinitionTool _getDefinitionTool;
-  late final VerifyAEImplementationTool _verifyTool;
-  late final EvaluateAEComplianceTool _evaluateTool;
-  late final ManageAERegistryTool _manageRegistryTool;
-
   PromptsFrameworkMCPServer(
     super.channel, {
-    String? resourcesPath,
-    String? version,
+    final String? resourcesPath,
+    final String? version,
   }) : super.fromStreamChannel(
           implementation: Implementation(
             name: AEFrameworkConfig.serverName,
@@ -74,6 +67,12 @@ This server provides strategic guidance; full documentation comes from tool resp
     registerTool(_createEvaluateTool(), _handleEvaluate);
     registerTool(_createManageRegistryTool(), _handleManageRegistry);
   }
+  late final AEDocuments _documents;
+  late final GetAEInstructionsTool _getInstructionsTool;
+  late final GetAgenticExecutableDefinitionTool _getDefinitionTool;
+  late final VerifyAEImplementationTool _verifyTool;
+  late final EvaluateAEComplianceTool _evaluateTool;
+  late final ManageAERegistryTool _manageRegistryTool;
 
   /// Determines the default resources path relative to the executable.
   String _defaultResourcesPath() {
@@ -139,8 +138,8 @@ This server provides strategic guidance; full documentation comes from tool resp
   /// Creates the verify_ae_implementation tool definition.
   Tool _createVerifyTool() => Tool(
         name: 'verify_ae_implementation',
-        description:
-            '''Verifies AE implementation using structured metrics. Agent provides checklist completion status and file modifications, MCP performs objective verification with pass/fail results.
+        description: '''
+Verifies AE implementation using structured metrics. Agent provides checklist completion status and file modifications, MCP performs objective verification with pass/fail results.
 
 Expected input format:
 {
@@ -192,8 +191,8 @@ Expected input format:
   /// Creates the evaluate_ae_compliance tool definition.
   Tool _createEvaluateTool() => Tool(
         name: 'evaluate_ae_compliance',
-        description:
-            '''Evaluates AE implementation using structured metrics and hardcoded scoring. Agent provides concrete data (files, LOC, sections, flags), MCP performs objective pass/fail evaluation. Favors concise documentation (lower LOC = better score).
+        description: '''
+Evaluates AE implementation using structured metrics and hardcoded scoring. Agent provides concrete data (files, LOC, sections, flags), MCP performs objective pass/fail evaluation. Favors concise documentation (lower LOC = better score).
 
 Expected input format:
 {
@@ -247,7 +246,8 @@ LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
       );
 
   /// Handles get_ae_instructions tool calls.
-  Future<CallToolResult> _handleGetInstructions(CallToolRequest request) async {
+  Future<CallToolResult> _handleGetInstructions(
+      final CallToolRequest request) async {
     final result = await _getInstructionsTool.execute(request.arguments ?? {});
     return CallToolResult(
       content: [TextContent(text: _formatJson(result))],
@@ -255,7 +255,8 @@ LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
   }
 
   /// Handles get_agentic_executable_definition tool calls.
-  Future<CallToolResult> _handleGetDefinition(CallToolRequest request) async {
+  Future<CallToolResult> _handleGetDefinition(
+      final CallToolRequest request) async {
     final result = _getDefinitionTool.execute(request.arguments ?? {});
     return CallToolResult(
       content: [TextContent(text: _formatJson(result))],
@@ -263,7 +264,7 @@ LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
   }
 
   /// Handles verify_ae_implementation tool calls.
-  Future<CallToolResult> _handleVerify(CallToolRequest request) async {
+  Future<CallToolResult> _handleVerify(final CallToolRequest request) async {
     final result = _verifyTool.execute(request.arguments ?? {});
     return CallToolResult(
       content: [TextContent(text: _formatJson(result))],
@@ -271,7 +272,7 @@ LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
   }
 
   /// Handles evaluate_ae_compliance tool calls.
-  Future<CallToolResult> _handleEvaluate(CallToolRequest request) async {
+  Future<CallToolResult> _handleEvaluate(final CallToolRequest request) async {
     final result = _evaluateTool.execute(request.arguments ?? {});
     return CallToolResult(
       content: [TextContent(text: _formatJson(result))],
@@ -281,7 +282,8 @@ LOC Scoring: <500=PASS, 500-800=WARNING, >800=FAIL (lower is better)''',
   /// Creates the manage_ae_registry tool definition.
   Tool _createManageRegistryTool() => Tool(
         name: 'manage_ae_registry',
-        description: '''Manages AE registry for library authors and developers.
+        description: '''
+Manages AE registry for library authors and developers.
 
 OPERATIONS:
 1. submit_to_registry: Generate PR instructions for library authors to submit/update library AE files
@@ -332,7 +334,7 @@ Use bootstrap_local_registry to create registry structure for internal libraries
 
   /// Handles manage_ae_registry tool calls.
   Future<CallToolResult> _handleManageRegistry(
-    CallToolRequest request,
+    final CallToolRequest request,
   ) async {
     final result = await _manageRegistryTool.execute(request.arguments ?? {});
     return CallToolResult(
@@ -341,5 +343,5 @@ Use bootstrap_local_registry to create registry structure for internal libraries
   }
 
   /// Formats result as pretty JSON string.
-  String _formatJson(Map<String, dynamic> data) => jsonEncode(data);
+  String _formatJson(final Map<String, dynamic> data) => jsonEncode(data);
 }

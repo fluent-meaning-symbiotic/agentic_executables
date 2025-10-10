@@ -53,7 +53,9 @@ void main() {
         expect(result['success'], true);
         expect(result['library_id'], 'dart_xsoulspace_lints');
         expect(
-            result['registry_folder'], 'ae_use_registry/dart_xsoulspace_lints');
+          result['registry_folder'],
+          'ae_use_registry/dart_xsoulspace_lints',
+        );
         expect(result['pr_instructions'], isNotEmpty);
         expect(result['files_to_copy'], hasLength(5)); // 4 ae files + README
         expect(result['status'], anyOf('new', 'update'));
@@ -82,7 +84,7 @@ void main() {
         expect(result['success'], true);
         final files = result['files_to_copy'] as List;
         final readme = files.firstWhere(
-          (f) => f['target'].toString().endsWith('README.md'),
+          (final f) => f['target'].toString().endsWith('README.md'),
         );
         expect(readme['source'], 'generated');
         expect(readme['content'], isNotEmpty);
@@ -134,24 +136,28 @@ void main() {
       });
 
       // Note: This test requires network access to the actual registry
-      test('fetches existing library from registry', () async {
-        final result = await tool.execute({
-          'operation': 'get_from_registry',
-          'library_id': 'dart_xsoulspace_lints',
-          'action': 'install',
-        });
+      test(
+        'fetches existing library from registry',
+        () async {
+          final result = await tool.execute({
+            'operation': 'get_from_registry',
+            'library_id': 'dart_xsoulspace_lints',
+            'action': 'install',
+          });
 
-        // This will only pass if dart_xsoulspace_lints is actually in the registry
-        if (result['success'] == true) {
-          expect(result['library_id'], 'dart_xsoulspace_lints');
-          expect(result['action'], 'install');
-          expect(result['content'], isNotEmpty);
-          expect(result['source_url'], contains('ae_install.md'));
-        } else {
-          // If not in registry yet, that's also valid
-          expect(result['error'], contains('not found in registry'));
-        }
-      }, skip: 'Requires network access and library to exist in registry');
+          // This will only pass if dart_xsoulspace_lints is actually in the registry
+          if (result['success'] == true) {
+            expect(result['library_id'], 'dart_xsoulspace_lints');
+            expect(result['action'], 'install');
+            expect(result['content'], isNotEmpty);
+            expect(result['source_url'], contains('ae_install.md'));
+          } else {
+            // If not in registry yet, that's also valid
+            expect(result['error'], contains('not found in registry'));
+          }
+        },
+        skip: 'Requires network access and library to exist in registry',
+      );
     });
 
     group('bootstrap_local_registry', () {
@@ -234,32 +240,40 @@ void main() {
       );
     });
 
-    test('fetches file from public repository', () async {
-      // Test with a known public file
-      try {
-        final content = await fetcher.fetchFile(
-          'xsoulspace',
-          'agentic_executables',
-          'README.md',
-        );
-        expect(content, isNotEmpty);
-      } catch (e) {
-        // If the file doesn't exist yet or network issue, skip
-        // Skipping network test
-      }
-    }, skip: 'Requires network access');
+    test(
+      'fetches file from public repository',
+      () async {
+        // Test with a known public file
+        try {
+          final content = await fetcher.fetchFile(
+            'xsoulspace',
+            'agentic_executables',
+            'README.md',
+          );
+          expect(content, isNotEmpty);
+        } catch (e) {
+          // If the file doesn't exist yet or network issue, skip
+          // Skipping network test
+        }
+      },
+      skip: 'Requires network access',
+    );
 
-    test('tries master branch if main fails', () async {
-      // This test verifies the fallback behavior
-      // Most modern repos use 'main', but some still use 'master'
-      try {
-        await fetcher.fetchFile('owner', 'repo', 'nonexistent.md');
-        fail('Should throw exception for nonexistent file');
-      } catch (e) {
-        expect(e.toString(), contains('File not found'));
-        expect(e.toString(), contains('tried branches'));
-      }
-    }, skip: 'Requires network access');
+    test(
+      'tries master branch if main fails',
+      () async {
+        // This test verifies the fallback behavior
+        // Most modern repos use 'main', but some still use 'master'
+        try {
+          await fetcher.fetchFile('owner', 'repo', 'nonexistent.md');
+          fail('Should throw exception for nonexistent file');
+        } catch (e) {
+          expect(e.toString(), contains('File not found'));
+          expect(e.toString(), contains('tried branches'));
+        }
+      },
+      skip: 'Requires network access',
+    );
   });
 
   group('RegistryResolver', () {

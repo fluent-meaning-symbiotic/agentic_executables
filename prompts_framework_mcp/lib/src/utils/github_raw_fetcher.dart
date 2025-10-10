@@ -6,9 +6,8 @@ import '../ae_framework_config.dart';
 /// Fetches files from GitHub repositories using raw.githubusercontent.com
 /// without requiring authentication (public repos only).
 class GitHubRawFetcher {
-  final HttpClient _httpClient;
-
   GitHubRawFetcher() : _httpClient = HttpClient();
+  final HttpClient _httpClient;
 
   /// Fetches a single file from a GitHub repository.
   ///
@@ -20,9 +19,9 @@ class GitHubRawFetcher {
   /// Returns the file content as a string.
   /// Throws [HttpException] if file not found or network error.
   Future<String> fetchFile(
-    String owner,
-    String repo,
-    String path, {
+    final String owner,
+    final String repo,
+    final String path, {
     String? branch,
   }) async {
     branch ??= AEFrameworkConfig.defaultBranch;
@@ -53,7 +52,7 @@ class GitHubRawFetcher {
       }
     } catch (e) {
       if (e is HttpException) rethrow;
-      throw HttpException('Network error: ${e.toString()}');
+      throw HttpException('Network error: $e');
     }
   }
 
@@ -65,8 +64,8 @@ class GitHubRawFetcher {
   /// Returns a map of filename to content for all found files.
   /// Only returns files that exist (doesn't error on missing files).
   Future<Map<String, String>> fetchAEUseFiles(
-    String repoUrl, {
-    String aePath = '/ae_use',
+    final String repoUrl, {
+    final String aePath = '/ae_use',
   }) async {
     final repoInfo = _parseGitHubUrl(repoUrl);
     final files = <String, String>{};
@@ -103,9 +102,9 @@ class GitHubRawFetcher {
   /// [branch] - Branch name
   ///
   /// Returns the complete raw.githubusercontent.com URL.
-  String buildRawUrl(String owner, String repo, String path, String branch) {
-    return AEFrameworkConfig.buildGitHubRawUrl(owner, repo, path, branch);
-  }
+  String buildRawUrl(final String owner, final String repo, final String path,
+          final String branch) =>
+      AEFrameworkConfig.buildGitHubRawUrl(owner, repo, path, branch);
 
   /// Checks if a library exists in the registry by attempting to fetch its README.
   ///
@@ -115,10 +114,10 @@ class GitHubRawFetcher {
   ///
   /// Returns true if the library folder exists in the registry.
   Future<bool> libraryExistsInRegistry(
-    String libraryId, {
-    String? registryOwner,
-    String? registryRepo,
-    String? branch,
+    final String libraryId, {
+    final String? registryOwner,
+    final String? registryRepo,
+    final String? branch,
   }) async {
     try {
       await fetchFile(
@@ -141,7 +140,7 @@ class GitHubRawFetcher {
   /// - https://github.com/owner/repo/blob/branch/path
   ///
   /// Returns a map with 'owner', 'repo', and optional 'branch'.
-  Map<String, String> _parseGitHubUrl(String url) {
+  Map<String, String> _parseGitHubUrl(final String url) {
     final uri = Uri.parse(url);
 
     if (uri.host != 'github.com') {

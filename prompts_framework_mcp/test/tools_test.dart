@@ -44,27 +44,29 @@ void main() {
             'path': 'ae_bootstrap.md',
             'loc': AEValidationConfig.warningLoc - 100, // Well under threshold
             'sections': AEValidationConfig.getRequiredSectionsForFile(
-                'ae_bootstrap.md', 'bootstrap')
+              'ae_bootstrap.md',
+              'bootstrap',
+            ),
           },
           {
             'path': 'ae_install.md',
             'loc': AEValidationConfig.warningLoc - 150,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_uninstall.md',
             'loc': AEValidationConfig.warningLoc - 300,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_update.md',
             'loc': AEValidationConfig.warningLoc - 250,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_use.md',
             'loc': AEValidationConfig.warningLoc - 200,
-            'sections': []
+            'sections': [],
           },
         ],
         'checklist_completed': {
@@ -94,7 +96,7 @@ void main() {
           {
             'path': 'ae_bootstrap.md',
             'loc': AEValidationConfig.warningLoc - 100,
-            'sections': []
+            'sections': [],
           },
         ],
         'checklist_completed': {
@@ -119,27 +121,27 @@ void main() {
           {
             'path': 'ae_bootstrap.md',
             'loc': AEValidationConfig.warningLoc + 100,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_install.md',
             'loc': AEValidationConfig.warningLoc + 50,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_uninstall.md',
             'loc': AEValidationConfig.warningLoc + 20,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_update.md',
             'loc': AEValidationConfig.warningLoc + 10,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_use.md',
             'loc': AEValidationConfig.warningLoc + 5,
-            'sections': []
+            'sections': [],
           },
         ],
         'checklist_completed': {
@@ -166,27 +168,27 @@ void main() {
           {
             'path': 'ae_bootstrap.md',
             'loc': AEValidationConfig.maxLoc + 100,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_install.md',
             'loc': AEValidationConfig.warningLoc - 150,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_uninstall.md',
             'loc': AEValidationConfig.warningLoc - 300,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_update.md',
             'loc': AEValidationConfig.warningLoc - 250,
-            'sections': []
+            'sections': [],
           },
           {
             'path': 'ae_use.md',
             'loc': AEValidationConfig.warningLoc - 200,
-            'sections': []
+            'sections': [],
           },
         ],
         'checklist_completed': {
@@ -224,10 +226,13 @@ void main() {
       final verification = result['verification'] as Map;
       final checks = verification['checks'] as List;
 
-      final checkNames = checks.map((c) => c['item']).toList();
-      expect(checkNames.any((n) => n.toString().contains('Modularity')), true);
-      expect(checkNames.any((n) => n.toString().contains('Validation')), true);
-      expect(checkNames.any((n) => n.toString().contains('Integration')), true);
+      final checkNames = checks.map((final c) => c['item']).toList();
+      expect(checkNames.any((final n) => n.toString().contains('Modularity')),
+          true);
+      expect(checkNames.any((final n) => n.toString().contains('Validation')),
+          true);
+      expect(checkNames.any((final n) => n.toString().contains('Integration')),
+          true);
     });
 
     test('should handle JSON string inputs', () {
@@ -283,12 +288,12 @@ void main() {
         'files_created': [
           {
             'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100
+            'loc': AEValidationConfig.warningLoc - 100,
           },
           {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc - 150},
           {
             'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc - 300
+            'loc': AEValidationConfig.warningLoc - 300,
           },
           {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc - 250},
           {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc - 200},
@@ -316,7 +321,7 @@ void main() {
         'files_created': [
           {
             'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100
+            'loc': AEValidationConfig.warningLoc - 100,
           },
         ],
         'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
@@ -357,7 +362,7 @@ void main() {
 
       final checks = evaluation['checks'] as List;
       final locCheck = checks.firstWhere(
-        (c) => c['criterion'] == 'Documentation Conciseness',
+        (final c) => c['criterion'] == 'Documentation Conciseness',
       );
       expect(locCheck['status'], 'FAIL');
     });
@@ -369,12 +374,12 @@ void main() {
         'files_created': [
           {
             'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc + 100
+            'loc': AEValidationConfig.warningLoc + 100,
           },
           {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc + 50},
           {
             'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc + 20
+            'loc': AEValidationConfig.warningLoc + 20,
           },
           {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc + 10},
           {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc + 5},
@@ -388,7 +393,7 @@ void main() {
       final evaluation = result['evaluation'] as Map<String, dynamic>;
       final checks = evaluation['checks'] as List;
       final locCheck = checks.firstWhere(
-        (c) => c['criterion'] == 'Documentation Conciseness',
+        (final c) => c['criterion'] == 'Documentation Conciseness',
       );
       expect(locCheck['status'], contains('warnings'));
     });
@@ -400,12 +405,12 @@ void main() {
         'files_created': [
           {
             'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100
+            'loc': AEValidationConfig.warningLoc - 100,
           },
           {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc - 150},
           {
             'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc - 300
+            'loc': AEValidationConfig.warningLoc - 300,
           },
           {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc - 250},
           {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc - 200},
@@ -423,7 +428,7 @@ void main() {
 
       final checks = evaluation['checks'] as List;
       final sectionsCheck = checks.firstWhere(
-        (c) => c['criterion'] == 'Required Sections',
+        (final c) => c['criterion'] == 'Required Sections',
       );
       expect(sectionsCheck['status'], 'FAIL');
     });
@@ -454,7 +459,7 @@ void main() {
     });
 
     test('should handle JSON string inputs', () {
-      final locGood = AEValidationConfig.warningLoc - 100;
+      const locGood = AEValidationConfig.warningLoc - 100;
       final result = tool.execute({
         'context_type': 'library',
         'action': 'bootstrap',
@@ -477,7 +482,7 @@ void main() {
         'files_created': [
           {
             'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.maxLoc + 100
+            'loc': AEValidationConfig.maxLoc + 100,
           }, // Too verbose
         ],
         'sections_present': [], // Missing sections
@@ -492,8 +497,11 @@ void main() {
       expect(fixes, isNotEmpty);
       expect(fixes.length, greaterThan(3));
       expect(
-        fixes.any((f) =>
-            f.toString().contains('LOC') || f.toString().contains('verbosity')),
+        fixes.any(
+          (final f) =>
+              f.toString().contains('LOC') ||
+              f.toString().contains('verbosity'),
+        ),
         true,
       );
     });

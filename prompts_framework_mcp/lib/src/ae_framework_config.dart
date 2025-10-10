@@ -72,11 +72,12 @@ class AEFrameworkConfig {
   static String getRegistryUrl() => repositoryUrl;
 
   /// Builds registry folder path for a library
-  static String getRegistryFolder(String libraryId) =>
+  static String getRegistryFolder(final String libraryId) =>
       '$registryBasePath/$libraryId';
 
   /// Builds full registry file path for a library and action
-  static String getRegistryFilePath(String libraryId, String action) {
+  static String getRegistryFilePath(
+      final String libraryId, final String action) {
     final fileName = getAEFileName(action);
     return '$registryBasePath/$libraryId/$fileName';
   }
@@ -100,7 +101,7 @@ class AEFrameworkConfig {
   ];
 
   /// Maps action to corresponding AE filename
-  static String getAEFileName(String action) {
+  static String getAEFileName(final String action) {
     switch (action.toLowerCase()) {
       case 'bootstrap':
         return 'ae_bootstrap.md';
@@ -128,7 +129,7 @@ class AEFrameworkConfig {
   static const List<String> validContexts = ['library', 'project'];
 
   /// Validates context type
-  static bool isValidContext(String context) =>
+  static bool isValidContext(final String context) =>
       validContexts.contains(context.toLowerCase());
 
   /// Returns all valid contexts
@@ -160,11 +161,11 @@ class AEFrameworkConfig {
   ];
 
   /// Validates action type
-  static bool isValidAction(String action) =>
+  static bool isValidAction(final String action) =>
       validActions.contains(action.toLowerCase());
 
   /// Validates registry action type
-  static bool isValidRegistryAction(String action) =>
+  static bool isValidRegistryAction(final String action) =>
       registryActions.contains(action.toLowerCase());
 
   /// Returns all valid actions
@@ -193,7 +194,7 @@ class AEFrameworkConfig {
   ];
 
   /// Validates registry operation
-  static bool isValidRegistryOperation(String operation) =>
+  static bool isValidRegistryOperation(final String operation) =>
       validRegistryOperations.contains(operation.toLowerCase());
 
   /// Returns all valid registry operations
@@ -212,35 +213,34 @@ class AEFrameworkConfig {
   static final RegExp libraryIdPattern = RegExp(r'^[a-z]+_[a-z0-9_]+$');
 
   /// Validates library ID format
-  static bool isValidLibraryId(String libraryId) {
-    return libraryIdPattern.hasMatch(libraryId) &&
-        libraryId.split('_').length >= 2;
-  }
+  static bool isValidLibraryId(final String libraryId) =>
+      libraryIdPattern.hasMatch(libraryId) && libraryId.split('_').length >= 2;
 
   /// Extracts language from library ID
-  static String? extractLanguage(String libraryId) {
+  static String? extractLanguage(final String libraryId) {
     if (!isValidLibraryId(libraryId)) return null;
     return libraryId.split('_').first;
   }
 
   /// Extracts library name from library ID
-  static String? extractLibraryName(String libraryId) {
+  static String? extractLibraryName(final String libraryId) {
     if (!isValidLibraryId(libraryId)) return null;
     final parts = libraryId.split('_');
     return parts.sublist(1).join('_');
   }
 
   /// Suggests a library ID from language and library name
-  static String suggestLibraryId(String language, String libraryName) {
+  static String suggestLibraryId(
+      final String language, final String libraryName) {
     final normalizedLanguage =
         language.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
     final normalizedName =
-        libraryName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
+        libraryName.toLowerCase().replaceAll(RegExp('[^a-z0-9_]'), '_');
     return '${normalizedLanguage}_$normalizedName';
   }
 
   /// Error message for invalid library ID
-  static String getInvalidLibraryIdError(String libraryId) =>
+  static String getInvalidLibraryIdError(final String libraryId) =>
       'Invalid library_id format: $libraryId. Expected format: `<language>_<library_name>` (e.g., dart_provider, python_requests)';
 
   // ============================================================================
@@ -259,10 +259,10 @@ class AEFrameworkConfig {
 
   /// Builds a raw GitHub URL for file access
   static String buildGitHubRawUrl(
-    String owner,
-    String repo,
-    String filePath,
-    String branch,
+    final String owner,
+    final String repo,
+    final String filePath,
+    final String branch,
   ) {
     final cleanPath =
         filePath.startsWith('/') ? filePath.substring(1) : filePath;
@@ -270,7 +270,8 @@ class AEFrameworkConfig {
   }
 
   /// Builds raw URL for registry file
-  static String buildRegistryRawUrl(String libraryId, String action) {
+  static String buildRegistryRawUrl(
+      final String libraryId, final String action) {
     final filePath = getRegistryFilePath(libraryId, action);
     return buildGitHubRawUrl(
       registryOwner,
