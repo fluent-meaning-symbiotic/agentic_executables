@@ -315,6 +315,15 @@ $language library: $libraryName
     required final String status,
   }) {
     final action = status == 'new' ? 'Add' : 'Update';
+    final branchName = '$action-$libraryId';
+
+    // Generate fork link
+    final forkLink =
+        'https://github.com/${_resolver.registryOwner}/${_resolver.registryRepo}/fork';
+
+    // Generate PR compare URL template (username will be detected or replaced by user)
+    final prCompareUrl =
+        'https://github.com/${_resolver.registryOwner}/${_resolver.registryRepo}/compare/${_resolver.registryBranch}...YOUR_GITHUB_USERNAME:$branchName';
 
     return '''
 # $action $libraryId to AE Registry
@@ -323,13 +332,24 @@ $language library: $libraryName
 
 ### 1. Fork and Clone Registry Repository
 
-If not already cloned:
-```bash
-# Clone the registry repository
-git clone https://github.com/${_resolver.registryOwner}/${_resolver.registryRepo}.git
-cd ${_resolver.registryRepo}
+**Option A: If you don't have a fork yet**
 
-# Or if already cloned, ensure it's up to date
+Fork the repository: $forkLink
+
+Then clone your fork:
+```bash
+# Replace YOUR_GITHUB_USERNAME with your actual GitHub username
+git clone https://github.com/YOUR_GITHUB_USERNAME/${_resolver.registryRepo}.git
+cd ${_resolver.registryRepo}
+```
+
+**Option B: If you already have a local clone**
+
+```bash
+# Navigate to your existing clone
+cd /path/to/${_resolver.registryRepo}
+
+# Ensure it's up to date
 git checkout ${_resolver.registryBranch}
 git pull origin ${_resolver.registryBranch}
 ```
@@ -337,7 +357,7 @@ git pull origin ${_resolver.registryBranch}
 ### 2. Create Feature Branch
 
 ```bash
-git checkout -b $action-$libraryId
+git checkout -b $branchName
 ```
 
 ### 3. Create Registry Folder
@@ -370,14 +390,25 @@ Status: $status
 ### 7. Push to Your Fork
 
 ```bash
-git push origin $action-$libraryId
+git push origin $branchName
 ```
 
 ### 8. Create Pull Request
 
+**Quick Link (Primary Method):**
+
+After pushing, open this URL (replace YOUR_GITHUB_USERNAME with your GitHub username):
+```
+$prCompareUrl
+```
+
+This will open GitHub's PR page with your branch pre-selected.
+
+**Manual Method (Fallback):**
+
 1. Go to https://github.com/${_resolver.registryOwner}/${_resolver.registryRepo}
 2. Click "New Pull Request"
-3. Select your branch: $action-$libraryId
+3. Select your branch: $branchName
 4. Title: "$action $libraryId to AE Registry"
 5. Description:
    - Library: $libraryId
