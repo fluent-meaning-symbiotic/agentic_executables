@@ -43,7 +43,7 @@ mkdir -p build
 
 # Compile to native binary
 echo "🔨 Compiling to native binary..."
-dart compile exe bin/prompts_framework_mcp_server.dart -o build/server
+dart compile exe bin/agentic_executables_mcp_server.dart -o build/server
 echo ""
 
 # Check binary

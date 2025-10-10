@@ -1,8 +1,8 @@
 import 'dart:io';
 
+import 'package:agentic_executables_mcp/src/ae_framework_config.dart';
+import 'package:agentic_executables_mcp/src/server.dart';
 import 'package:dart_mcp/stdio.dart';
-import 'package:prompts_framework_mcp/src/ae_framework_config.dart';
-import 'package:prompts_framework_mcp/src/server.dart';
 
 /// Entry point for the Prompts Framework MCP Server.
 /// Communicates via STDIO transport for MCP protocol.

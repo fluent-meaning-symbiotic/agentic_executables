@@ -59,7 +59,7 @@ For detailed installation instructions, see [ae_install.md](ae_install.md).
 
 ```bash
 # Clone and build
-cd prompts_framework_mcp
+cd agentic_executables_mcp
 ./build.sh
 
 # Run the server
@@ -74,7 +74,7 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 {
   "mcpServers": {
     "agentic_executables": {
-      "command": "/absolute/path/to/prompts_framework_mcp/build/server"
+      "command": "/absolute/path/to/agentic_executables_mcp/build/server"
     }
   }
 }
@@ -301,9 +301,9 @@ The server guides agents to follow these core principles:
 ## Architecture
 
 ```
-prompts_framework_mcp/
+agentic_executables_mcp/
 ├── bin/
-│   └── prompts_framework_mcp_server.dart          # Entry point
+│   └── agentic_executables_mcp_server.dart          # Entry point
 ├── lib/
 │   └── src/
 │       ├── server.dart                            # MCPServer implementation

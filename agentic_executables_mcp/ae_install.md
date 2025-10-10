@@ -9,7 +9,7 @@ Agentic Executable for installing the Prompts Framework MCP Server.
 ```bash
 # Clone and navigate
 git clone https://github.com/fluent-meaning-symbiotic/agentic_executables.git
-cd agentic_executables/prompts_framework_mcp
+cd agentic_executables/agentic_executables_mcp
 
 # Validate
 test -f pubspec.yaml && echo "✓ Ready" || echo "✗ Failed"
@@ -18,7 +18,7 @@ test -f pubspec.yaml && echo "✓ Ready" || echo "✗ Failed"
 ### If Already Cloned
 
 ```bash
-cd /path/to/agentic_executables/prompts_framework_mcp
+cd /path/to/agentic_executables/agentic_executables_mcp
 git pull origin main
 ```
 
@@ -57,7 +57,7 @@ test -f pubspec.lock && test -d .dart_tool && echo "✓ Done" || echo "✗ Faile
 ./build.sh
 
 # Or manual
-dart compile exe bin/prompts_framework_mcp_server.dart -o build/server
+dart compile exe bin/agentic_executables_mcp_server.dart -o build/server
 
 # Validate
 ls -lh build/server
@@ -107,7 +107,7 @@ Edit `claude_desktop_config.json`:
 {
   "mcpServers": {
     "agentic_executables": {
-      "command": "/absolute/path/to/prompts_framework_mcp/build/server"
+      "command": "/absolute/path/to/agentic_executables_mcp/build/server"
     }
   }
 }
@@ -187,10 +187,10 @@ Config: `"command": "docker", "args": ["run", "-i", "prompts-framework-mcp"]`
 **Dev mode** (no compilation):
 
 ```bash
-dart run bin/prompts_framework_mcp_server.dart
+dart run bin/agentic_executables_mcp_server.dart
 ```
 
-Config: `"command": "dart", "args": ["run", "/abs/path/bin/prompts_framework_mcp_server.dart"]`
+Config: `"command": "dart", "args": ["run", "/abs/path/bin/agentic_executables_mcp_server.dart"]`
 
 Note: Slower startup (~2s) but no build step.
 

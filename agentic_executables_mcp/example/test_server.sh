@@ -8,7 +8,7 @@ echo ""
 
 # Test 1: Get AE Instructions for library bootstrap
 echo "Test 1: Get AE Instructions (library, bootstrap)"
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test-client","version":"1.0.0"}}}' | dart run bin/prompts_framework_mcp_server.dart
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test-client","version":"1.0.0"}}}' | dart run bin/agentic_executables_mcp_server.dart
 echo ""
 
 # Note: The server uses STDIO and expects JSON-RPC 2.0 protocol

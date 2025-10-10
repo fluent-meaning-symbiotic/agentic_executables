@@ -175,7 +175,7 @@ Add to your Claude Desktop MCP config:
 {
   "mcpServers": {
     "prompts-framework": {
-      "command": "/path/to/prompts_framework_mcp/build/server"
+      "command": "/path/to/agentic_executables_mcp/build/server"
     }
   }
 }
@@ -193,7 +193,7 @@ void main() async {
   // Connect to server
   final connection = await client.connectStdioServer(
     'dart',
-    ['run', 'prompts_framework_mcp:prompts_framework_mcp_server'],
+    ['run', 'agentic_executables_mcp:agentic_executables_mcp_server'],
   );
 
   // Initialize

@@ -1,4 +1,4 @@
-name: prompts_framework_mcp
+name: agentic_executables_mcp
 description: MCP server providing strategic guidance for AI agents managing
   Agentic Executables (AE) framework
 version: 0.1.0
@@ -24,4 +24,4 @@ dev_dependencies:
   xsoulspace_lints: ^0.1.2
 
 executables:
-  prompts_framework_mcp_server: prompts_framework_mcp_server
+  agentic_executables_mcp_server: agentic_executables_mcp_server

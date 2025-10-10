@@ -16,7 +16,7 @@ RUN dart pub get
 COPY . .
 
 # Compile to native executable
-RUN dart compile exe bin/prompts_framework_mcp_server.dart -o server
+RUN dart compile exe bin/agentic_executables_mcp_server.dart -o server
 
 # Runtime stage
 FROM debian:bookworm-slim AS runtime

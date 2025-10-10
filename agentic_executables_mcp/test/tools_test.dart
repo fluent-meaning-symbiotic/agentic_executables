@@ -1,6 +1,6 @@
-import 'package:prompts_framework_mcp/src/ae_validation_config.dart';
-import 'package:prompts_framework_mcp/src/tools/evaluate_ae_compliance.dart';
-import 'package:prompts_framework_mcp/src/tools/verify_ae_implementation.dart';
+import 'package:agentic_executables_mcp/src/ae_validation_config.dart';
+import 'package:agentic_executables_mcp/src/tools/evaluate_ae_compliance.dart';
+import 'package:agentic_executables_mcp/src/tools/verify_ae_implementation.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -227,12 +227,18 @@ void main() {
       final checks = verification['checks'] as List;
 
       final checkNames = checks.map((final c) => c['item']).toList();
-      expect(checkNames.any((final n) => n.toString().contains('Modularity')),
-          true);
-      expect(checkNames.any((final n) => n.toString().contains('Validation')),
-          true);
-      expect(checkNames.any((final n) => n.toString().contains('Integration')),
-          true);
+      expect(
+        checkNames.any((final n) => n.toString().contains('Modularity')),
+        true,
+      );
+      expect(
+        checkNames.any((final n) => n.toString().contains('Validation')),
+        true,
+      );
+      expect(
+        checkNames.any((final n) => n.toString().contains('Integration')),
+        true,
+      );
     });
 
     test('should handle JSON string inputs', () {

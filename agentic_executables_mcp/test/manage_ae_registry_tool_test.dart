@@ -1,6 +1,6 @@
-import 'package:prompts_framework_mcp/src/tools/manage_ae_registry.dart';
-import 'package:prompts_framework_mcp/src/utils/github_raw_fetcher.dart';
-import 'package:prompts_framework_mcp/src/utils/registry_resolver.dart';
+import 'package:agentic_executables_mcp/src/tools/manage_ae_registry.dart';
+import 'package:agentic_executables_mcp/src/utils/github_raw_fetcher.dart';
+import 'package:agentic_executables_mcp/src/utils/registry_resolver.dart';
 import 'package:test/test.dart';
 
 void main() {

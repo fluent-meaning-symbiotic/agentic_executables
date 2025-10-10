@@ -16,7 +16,7 @@ Foundation documents defining AE principles and methodology:
 - **`ae_bootstrap.md`** - Guide for creating AE files
 - **`ae_use.md`** - Guide for using AE files
 
-### 2. MCP Server → [`prompts_framework_mcp/`](./prompts_framework_mcp/)
+### 2. MCP Server → [`agentic_executables_mcp/`](./agentic_executables_mcp/)
 
 Model Context Protocol server providing strategic guidance for AI agents:
 
@@ -24,7 +24,7 @@ Model Context Protocol server providing strategic guidance for AI agents:
 - Language-agnostic guidance for AE operations
 - Docker deployment ready
 
-[**Full Documentation →**](./prompts_framework_mcp/README.md)
+[**Full Documentation →**](./agentic_executables_mcp/README.md)
 
 ### 3. Library Registry → [`ae_use_registry/`](./ae_use_registry/)
 
@@ -65,7 +65,7 @@ Agent → Executes installation automatically
 2. Download relevant `.md` files
 3. Provide to AI agent for execution
 
-[**Installation Guide →**](./prompts_framework_mcp/ae_install.md)
+[**Installation Guide →**](./agentic_executables_mcp/ae_install.md)
 
 ## Core Principles
 
@@ -91,7 +91,7 @@ Library Author                  Registry                   Developer
 
 ## Resources
 
-- **MCP Server Setup**: [`prompts_framework_mcp/README.md`](./prompts_framework_mcp/README.md)
+- **MCP Server Setup**: [`agentic_executables_mcp/README.md`](./agentic_executables_mcp/README.md)
 - **Registry Contribution**: [`ae_use_registry/CONTRIBUTING.md`](./ae_use_registry/CONTRIBUTING.md)
 - **Example Libraries**: [`ae_use_registry/dart_xsoulspace_lints/`](./ae_use_registry/dart_xsoulspace_lints/), [`ae_use_registry/python_requests/`](./ae_use_registry/python_requests/)
 - **Framework Principles**: [`prompts_framework/ae_context.md`](./prompts_framework/ae_context.md)

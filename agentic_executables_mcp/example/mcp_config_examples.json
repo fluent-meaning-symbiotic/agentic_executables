@@ -6,7 +6,7 @@
     "_location": "~/Library/Application Support/Claude/claude_desktop_config.json",
     "mcpServers": {
       "prompts-framework": {
-        "command": "/absolute/path/to/prompts_framework_mcp/build/server"
+        "command": "/absolute/path/to/agentic_executables_mcp/build/server"
       }
     }
   },
@@ -18,7 +18,7 @@
         "command": "dart",
         "args": [
           "run",
-          "/absolute/path/to/prompts_framework_mcp/bin/prompts_framework_mcp_server.dart"
+          "/absolute/path/to/agentic_executables_mcp/bin/agentic_executables_mcp_server.dart"
         ]
       }
     }
