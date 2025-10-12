@@ -30,9 +30,12 @@ xsoulspace_logger provides configurable logging with console and file output, st
 
 ### Logger Lifecycle
 
-1. **Initialize** - Create singleton with config
-2. **Use** - Log throughout application
-3. **Dispose** - Flush file buffer on exit
+1. **Create** - Create singleton with config
+2. **Initialize** - Call `await logger.init()` for async setup
+3. **Use** - Log throughout application
+4. **Dispose** - Flush file buffer on exit
+
+**Note:** Explicit initialization via `await logger.init()` is required after creating a Logger instance, even for console-only configurations. This ensures proper async initialization and prevents race conditions.
 
 ## Common Usage Patterns
 
@@ -42,6 +45,8 @@ xsoulspace_logger provides configurable logging with console and file output, st
 void main() async {
   // Initialize logger first
   final logger = Logger(LoggerConfig.debug());
+  await logger.init();
+
   logger.info('APP', 'Application starting');
 
   // Setup
@@ -100,7 +105,11 @@ class ErrorBoundary {
   }
 }
 
-void main() {
+Future<void> main() async {
+  // Initialize logger first
+  final logger = Logger(LoggerConfig.debug());
+  await logger.init();
+
   // Flutter error handling
   FlutterError.onError = (details) {
     ErrorBoundary.handleError(details.exception, details.stack ?? StackTrace.current);
@@ -230,10 +239,12 @@ class PaymentProcessor {
 ### Pattern 7: Environment-Based Configuration
 
 ```dart
-void main() {
+Future<void> main() async {
   final env = Platform.environment['ENV'] ?? 'development';
 
   final logger = Logger(_getConfigForEnv(env));
+  await logger.init();
+
   logger.info('APP', 'Starting in $env mode');
 
   runApp(MyApp());
@@ -296,6 +307,18 @@ class PerformanceMonitor {
 ```
 
 ## Best Practices
+
+### 0. Always Initialize After Creation
+
+```dart
+// Good: Initialize immediately after creation
+final logger = Logger(LoggerConfig.debug());
+await logger.init();
+
+// Avoid: Using logger without initialization
+final logger = Logger(LoggerConfig.debug());
+logger.info('APP', 'Starting');  // May cause issues without init()
+```
 
 ### 1. Use Consistent Categories
 

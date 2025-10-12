@@ -72,13 +72,16 @@ final config = LoggerConfig(
 **Early in application lifecycle** (e.g., `main()` or app initialization):
 
 ```dart
-void main() {
+Future<void> main() async {
   // Initialize logger singleton
   final logger = Logger(LoggerConfig.debug());
-  
+  await logger.init();
+
   // Rest of app initialization
 }
 ```
+
+**Important:** Always call `await logger.init()` immediately after creating the Logger instance. This ensures proper async initialization and prevents race conditions.
 
 ### 2. Access Logger Instance
 
@@ -95,7 +98,7 @@ final logger = Logger();
 ```dart
 class ApiService {
   final _logger = Logger();
-  
+
   Future<Response> fetchData() async {
     _logger.info('API', 'Fetching data from endpoint');
     try {
@@ -115,7 +118,7 @@ class ApiService {
 ```dart
 class AppState extends ChangeNotifier {
   final _logger = Logger();
-  
+
   void updateUser(User user) {
     _logger.debug('STATE', 'Updating user', data: {'userId': user.id});
     // Update logic
@@ -151,17 +154,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
-  
+
   @override
   void dispose() {
     Logger().dispose(); // Flush file buffer
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || 
+    if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       Logger().dispose(); // Flush on background/exit
     }
@@ -176,8 +179,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 ```dart
 import 'package:xsoulspace_logger/xsoulspace_logger.dart';
 
-void testLogger() {
+Future<void> testLogger() async {
   final logger = Logger(LoggerConfig.consoleOnly());
+  await logger.init();
   logger.info('TEST', 'Logger initialized successfully');
 }
 ```
@@ -185,6 +189,7 @@ void testLogger() {
 ### 2. Verify File Output (if enabled)
 
 Check log directory:
+
 - Default: System temp directory
 - Custom: Specified `logDirectory` path
 
@@ -200,6 +205,7 @@ final logger = Logger(LoggerConfig(
   enableConsole: true,
   enableFile: false,
 ));
+await logger.init();
 
 logger.verbose('TEST', 'Should not appear'); // Filtered
 logger.debug('TEST', 'Should not appear');   // Filtered
@@ -211,6 +217,7 @@ logger.error('TEST', 'Should appear');       // Visible
 ### 4. Verify Rotation (if enabled)
 
 For file output with rotation:
+
 1. Generate logs exceeding `maxFileSizeMB`
 2. Verify new log file creation
 3. Check old files are maintained up to `maxFileCount`
@@ -220,6 +227,7 @@ For file output with rotation:
 ### File Permission Issues
 
 Ensure write access to log directory:
+
 - Use temp directory (default) for universal access
 - For custom paths, verify permissions
 
@@ -241,7 +249,7 @@ final logger = Logger();
 
 ## Best Practices
 
-1. **Initialize Early**: Set up logger before any other operations
+1. **Initialize Early**: Set up logger before any other operations and always call `await logger.init()`
 2. **Use Presets**: Leverage built-in configs for common scenarios
 3. **Categorize**: Use consistent category names (e.g., 'API', 'DB', 'UI')
 4. **Structured Data**: Prefer `data` parameter over string interpolation
@@ -254,6 +262,7 @@ final logger = Logger();
 - [ ] Dependency added to pubspec.yaml
 - [ ] Packages installed
 - [ ] Logger initialized in main() or app setup
+- [ ] **Logger.init() called after instantiation**
 - [ ] Configuration preset chosen or custom config created
 - [ ] Logger accessed in key application layers (services, state, UI)
 - [ ] Cleanup/dispose integrated for file output
@@ -261,4 +270,3 @@ final logger = Logger();
 - [ ] Log output verified (console/file as configured)
 - [ ] Error handling integrated with logger
 - [ ] Production configuration reviewed (levels, file rotation)
-
