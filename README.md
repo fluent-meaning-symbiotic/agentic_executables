@@ -10,6 +10,10 @@ _Reinventing library management for AI agents_
 
 Can you imagine you can install / configure and uninstall libraries (in any language and framework) as easy as any app or game on your phone or computer?
 
+<p align="center">
+  <img src="docs/prompts_to_use.png" alt="Prompts to use" style="max-width:100%;">
+</p>
+
 This is the framework-agnostic approach enabling AI agents to autonomously manage library installation, configuration, and usage across any programming language.
 
 ## What is AE?
@@ -120,6 +124,14 @@ Library Author                  Registry                   Developer
       │                            │                   AI Agent executes
       │                            │                   installation
 ```
+
+<p align="center">
+  <img src="docs/workflow_overview.png" alt="Workflow overview" style="max-width:100%;">
+</p>
+
+<p align="center">
+  <img src="docs/workflow_overview.png" alt="Workflow overview" style="max-width:100%;">
+</p>
 
 ## Resources
 
