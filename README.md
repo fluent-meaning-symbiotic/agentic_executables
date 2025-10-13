@@ -8,6 +8,10 @@ _Reinventing library management for AI agents_
 
 </div>
 
+<p align="center">
+  <img src="docs/fun_image.png" alt="Fun image" style="max-width:100%;">
+</p>
+
 Can you imagine you can install / configure and uninstall libraries (in any language and framework) as easy as any app or game on your phone or computer?
 
 <p align="center">
