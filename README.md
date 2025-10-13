@@ -1,10 +1,54 @@
-# Agentic Executables (AE)
+<div align="center">
 
-A framework-agnostic approach enabling AI agents to autonomously manage library installation, configuration, and usage across any programming language.
+# Agentic Executables (AE) + MCP Server
+
+_Reinventing library management for AI agents_
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
+
+Can you imagine you can install / configure and uninstall libraries (in any language and framework) as easy as any app or game on your phone or computer?
+
+This is the framework-agnostic approach enabling AI agents to autonomously manage library installation, configuration, and usage across any programming language.
 
 ## What is AE?
 
 Agentic Executables treat libraries as executable programs with structured, agent-readable instructions. Instead of relying on human documentation, AI agents follow standardized `.md` files to install, configure, integrate, update, and uninstall libraries autonomously.
+
+## Quick Start
+
+### You are Developer:
+
+1. First you need to install MCP server.
+   To do this, please drop https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/agentic_executables_mcp/ae_install.md file to your AI Agent or install it manually.
+
+2. Second, use it:
+
+- to install library (make sure it is in registry) write to your AI Agent: `create a plan to instal "library_name" as ae`
+- to uninstall - `create a plan to uninstall "library_name" as ae`
+- to update - `create a plan to update "library_name" as ae`
+- to use - `create rules for {AI Agent} to use "library_name" as ae`
+
+That's it:)
+
+### You are Library Author | Maintainer:
+
+1. First you need to install MCP server.
+   To do this, please drop https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/agentic_executables_mcp/ae_install.md file to your AI Agent or install it manually.
+
+2. Second, use it:
+
+- to bootstrap / update - `create a plan to bootstrap / update "library_name" as ae`
+- to submit to registry - `create a plan to submit "library_name" to registry as ae`
+
+That's it:)
+
+Please note: the documentation still in progress, so if you have any questions, please ask in discord or github issues.
+
+## Community:
+
+Discuss in discord server https://discord.gg/y54DpJwmAn or share your ideas and feedback in github issues!
 
 ## Repository Structure
 
@@ -35,18 +79,6 @@ Centralized repository of AE-enabled libraries:
 - Direct fetch via MCP tools or manual download
 
 [**Contributing Guide →**](./ae_use_registry/CONTRIBUTING.md)
-
-## Quick Start
-
-### For Library Authors
-
-1. Use MCP tool or read [`prompts_framework/ae_bootstrap.md`](./prompts_framework/ae_bootstrap.md)
-2. Create `ae_use/` folder with 4 required files:
-   - `ae_install.md` - Installation instructions
-   - `ae_uninstall.md` - Removal instructions
-   - `ae_update.md` - Migration guide
-   - `ae_use.md` - Usage patterns
-3. Submit to registry via MCP tool or PR
 
 [**Full Bootstrap Guide →**](./prompts_framework/ae_bootstrap.md)
 
