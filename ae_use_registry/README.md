@@ -1,89 +1,45 @@
-# Agentic Executables (AE) Registry
+# Agentic Executables (AE) Registry - Demo
 
-This registry contains curated AE documentation for popular libraries, enabling AI agents to install, configure, and manage them as executable programs.
+This folder contains **demo/example AE files** for reference and testing purposes only.
 
-## Purpose
+## 🔗 Official Registry
 
-The AE Registry serves as a centralized repository of library-specific AE files, allowing:
+**The official AE registry is located at:**  
+https://github.com/fluent-meaning-symbiotic/agentic_executables_registry
 
-- **Library authors** to publish standardized installation/usage instructions
-- **Developers** to quickly integrate libraries through AI agents
-- **AI agents** to access consistent, structured guidance for library management
+All production library AE files are maintained in the external registry under the `ae_use/` directory.
 
-## Naming Convention
+## Purpose of This Demo Folder
 
-Library entries must follow this format: `<language>_<library_name>`
+This local `ae_use_registry/` folder serves as:
 
-Examples:
+- **Examples** - Reference implementations showing proper AE file structure
+- **Testing** - Local test cases for MCP server development
+- **Documentation** - Learning resources for library authors
 
-- `dart_xsoulspace_lints` - Dart linting package
-- `python_requests` - Python HTTP library
-- `javascript_react` - React JavaScript library
+## Using the Official Registry
 
-## Required Files
+The MCP server automatically fetches from the official registry. When you use commands like:
 
-Each library entry must contain:
+```
+Operation: get_from_registry
+Library ID: dart_xsoulspace_lints
+Action: install
+```
 
-1. **README.md** - Library metadata (repository URL, authors, license)
-2. **ae_install.md** - Installation instructions for AI agents
-3. **ae_uninstall.md** - Uninstallation and cleanup instructions
-4. **ae_update.md** - Update and migration instructions
-5. **ae_use.md** - Usage patterns and best practices
+The MCP server fetches from:  
+`https://github.com/fluent-meaning-symbiotic/agentic_executables_registry/tree/main/ae_use/dart_xsoulspace_lints/`
 
-## File Format Requirements
+## Browsing Available Libraries
 
-All AE files should:
-
-- Be concise and actionable (prefer < 500 LOC)
-- Include validation steps
-- Define clear integration points
-- Provide reversibility instructions
-- Follow AE framework principles (modularity, contextual awareness, agent empowerment)
+Visit the official registry to browse all available libraries:  
+https://github.com/fluent-meaning-symbiotic/agentic_executables_registry/tree/main/ae_use
 
 ## Contributing
 
-### For Library Authors
+To contribute your library to the official registry, see:  
+[CONTRIBUTING.md](./CONTRIBUTING.md)
 
-1. Create ae_use folder in your library repository with all required files
-2. Use an AI agent with the `manage_ae_registry` MCP tool:
-   ```
-   Operation: submit_to_registry
-   Inputs: library_url, library_id, ae_use_files
-   ```
-3. Follow the returned PR instructions to submit your library
-4. Maintainers will review and merge your submission
+---
 
-### For Updates
-
-Use the same process - the tool will detect existing entries and guide you through the update flow.
-
-## Structure Example
-
-```
-ae_use_registry/
-├── README.md (this file)
-├── dart_xsoulspace_lints/
-│   ├── README.md
-│   ├── ae_install.md
-│   ├── ae_uninstall.md
-│   ├── ae_update.md
-│   └── ae_use.md
-└── python_requests/
-    ├── README.md
-    ├── ae_install.md
-    ├── ae_uninstall.md
-    ├── ae_update.md
-    └── ae_use.md
-```
-
-## Quality Guidelines
-
-- **Conciseness**: Prefer focused, specific instructions over comprehensive documentation
-- **Validation**: Always include verification steps
-- **Reversibility**: Provide clear uninstall/rollback procedures
-- **Best Practices**: Incorporate language/ecosystem conventions
-- **Anti-patterns**: Warn about common pitfalls
-
-## License
-
-Each library entry maintains its own license information in its README.md file.
+**Note:** Do not submit PRs to add libraries in this demo folder. All submissions should go to the official registry repository.

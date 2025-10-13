@@ -54,7 +54,7 @@ void main() {
         expect(result['library_id'], 'dart_xsoulspace_lints');
         expect(
           result['registry_folder'],
-          'ae_use_registry/dart_xsoulspace_lints',
+          'ae_use/dart_xsoulspace_lints',
         );
         expect(result['pr_instructions'], isNotEmpty);
         expect(result['files_to_copy'], hasLength(5)); // 4 ae files + README
@@ -179,7 +179,7 @@ void main() {
         expect(result['success'], true);
         expect(result['ae_use_path'], '/workspace/packages/my_lib/ae_use');
         expect(result['instructions'], isNotEmpty);
-        expect(result['instructions'], contains('ae_use_registry'));
+        expect(result['instructions'], contains('ae_use'));
         expect(result['suggested_library_id'], isNotEmpty);
       });
 
@@ -350,18 +350,18 @@ void main() {
       test('builds correct registry paths', () {
         expect(
           resolver.getRegistryPath('dart_provider', 'install'),
-          'ae_use_registry/dart_provider/ae_install.md',
+          'ae_use/dart_provider/ae_install.md',
         );
         expect(
           resolver.getRegistryPath('python_requests', 'uninstall'),
-          'ae_use_registry/python_requests/ae_uninstall.md',
+          'ae_use/python_requests/ae_uninstall.md',
         );
       });
 
       test('builds correct registry folder paths', () {
         expect(
           resolver.getRegistryFolder('dart_provider'),
-          'ae_use_registry/dart_provider',
+          'ae_use/dart_provider',
         );
       });
 

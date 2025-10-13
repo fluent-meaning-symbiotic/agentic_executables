@@ -56,13 +56,13 @@ class AEFrameworkConfig {
   static const String registryOwner = 'fluent-meaning-symbiotic';
 
   /// Default registry repository name
-  static const String registryRepo = 'agentic_executables';
+  static const String registryRepo = 'agentic_executables_registry';
 
   /// Default registry branch
   static const String defaultBranch = 'main';
 
   /// Registry base path within repository
-  static const String registryBasePath = 'ae_use_registry';
+  static const String registryBasePath = 'ae_use';
 
   /// Repository URL
   static const String repositoryUrl =
@@ -77,7 +77,9 @@ class AEFrameworkConfig {
 
   /// Builds full registry file path for a library and action
   static String getRegistryFilePath(
-      final String libraryId, final String action) {
+    final String libraryId,
+    final String action,
+  ) {
     final fileName = getAEFileName(action);
     return '$registryBasePath/$libraryId/$fileName';
   }
@@ -231,7 +233,9 @@ class AEFrameworkConfig {
 
   /// Suggests a library ID from language and library name
   static String suggestLibraryId(
-      final String language, final String libraryName) {
+    final String language,
+    final String libraryName,
+  ) {
     final normalizedLanguage =
         language.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
     final normalizedName =
@@ -271,7 +275,9 @@ class AEFrameworkConfig {
 
   /// Builds raw URL for registry file
   static String buildRegistryRawUrl(
-      final String libraryId, final String action) {
+    final String libraryId,
+    final String action,
+  ) {
     final filePath = getRegistryFilePath(libraryId, action);
     return buildGitHubRawUrl(
       registryOwner,

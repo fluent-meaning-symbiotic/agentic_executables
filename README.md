@@ -54,6 +54,14 @@ That's it:)
 
 Please note: the documentation still in progress, so if you have any questions, please ask in discord or github issues.
 
+## Changelog
+
+All notable changes to this project are documented in [CHANGELOG.md](./CHANGELOG.md).
+
+- Latest release and update details
+- Track major & minor feature releases
+- See version history for AE specification and toolchain
+
 ## Community:
 
 Discuss in discord server https://discord.gg/y54DpJwmAn or share your ideas and feedback in github issues!
@@ -78,17 +86,20 @@ Model Context Protocol server providing strategic guidance for AI agents:
 
 [**Full Documentation →**](./agentic_executables_mcp/README.md)
 
-### 3. Library Registry → [`ae_use_registry/`](./ae_use_registry/)
+### 3. Library Registry → **[Official Registry](https://github.com/fluent-meaning-symbiotic/agentic_executables_registry)**
 
 Centralized repository of AE-enabled libraries:
 
-- Curated library-specific AE files
+- Curated library-specific AE files at `ae_use/<language>_<library_name>/`
 - Standardized naming: `<language>_<library_name>`
 - Direct fetch via MCP tools or manual download
+- Browse available libraries: [ae_use/](https://github.com/fluent-meaning-symbiotic/agentic_executables_registry/tree/main/ae_use)
 
 [**Contributing Guide →**](./ae_use_registry/CONTRIBUTING.md)
 
 [**Full Bootstrap Guide →**](./prompts_framework/ae_bootstrap.md)
+
+**Note:** Local `ae_use_registry/` folder contains demo examples only.
 
 ### For Developers
 
@@ -101,9 +112,11 @@ Agent → Executes installation automatically
 
 **Manual:**
 
-1. Browse [`ae_use_registry/`](./ae_use_registry/) for your library
+1. Browse [official registry](https://github.com/fluent-meaning-symbiotic/agentic_executables_registry/tree/main/ae_use) for your library
 2. Download relevant `.md` files
 3. Provide to AI agent for execution
+
+**Local demos:** See [`ae_use_registry/`](./ae_use_registry/) for example implementations.
 
 [**Installation Guide →**](./agentic_executables_mcp/ae_install.md)
 
@@ -151,4 +164,4 @@ MIT License - Made by [@arenukvern](https://github.com/arenukvern)
 ## Support
 
 - Issues: [GitHub Issues](https://github.com/fluent-meaning-symbiotic/agentic_executables/issues)
-- Registry URL: https://github.com/fluent-meaning-symbiotic/agentic_executables
+- Official Registry: https://github.com/fluent-meaning-symbiotic/agentic_executables_registry

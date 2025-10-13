@@ -1,5 +1,15 @@
 # Contributing to the AE Registry
 
+> **⚠️ Important Notice**
+>
+> This guide applies to submitting libraries to the **official external registry** at:  
+> **https://github.com/fluent-meaning-symbiotic/agentic_executables_registry**
+>
+> The local `ae_use_registry/` folder in this repository is for demo/examples only.  
+> All production library submissions should go to the official registry.
+
+---
+
 This guide explains how to contribute library ae_use files to the registry using AI agents and the `manage_ae_registry` MCP tool.
 
 ## For Library Authors
