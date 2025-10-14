@@ -24,6 +24,8 @@ This is the framework-agnostic approach enabling AI agents to autonomously manag
 
 Agentic Executables treat libraries as executable programs with structured, agent-readable instructions. Instead of relying on human documentation, AI agents follow standardized `.md` files to install, configure, integrate, update, and uninstall libraries autonomously.
 
+If you prefer to see it in actions - [please see the video](https://youtu.be/5j3TvQqiVKQ).
+
 ## Quick Start
 
 ### You are Developer:
