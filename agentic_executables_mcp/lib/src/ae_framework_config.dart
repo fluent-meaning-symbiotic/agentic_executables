@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
+import 'ae_types.dart';
+
 /// Centralized configuration for the AE Framework MCP Server.
 /// Contains all server metadata, registry settings, and framework constants.
 class AEFrameworkConfig {
@@ -104,108 +106,107 @@ class AEFrameworkConfig {
 
   /// Maps action to corresponding AE filename
   static String getAEFileName(final String action) {
-    switch (action.toLowerCase()) {
-      case 'bootstrap':
-        return 'ae_bootstrap.md';
-      case 'install':
-        return 'ae_install.md';
-      case 'uninstall':
-        return 'ae_uninstall.md';
-      case 'update':
-        return 'ae_update.md';
-      case 'use':
-        return 'ae_use.md';
-      default:
-        throw ArgumentError('Invalid action: $action');
-    }
+    // Use type-safe enum for conversion
+    final aeAction = AEAction.fromString(action);
+    return aeAction.fileName;
   }
 
   /// Returns all required AE files for registry submission
   static List<String> getRequiredAEFiles() => List.from(aeFileNames);
 
   // ============================================================================
-  // VALID ENUMS - CONTEXTS
+  // VALID ENUMS - CONTEXTS (Type-safe enums in ae_types.dart)
   // ============================================================================
 
-  /// Valid context types
-  static const List<String> validContexts = ['library', 'project'];
+  /// Valid context types (derived from AEContextType enum)
+  static List<String> get validContexts => AEContextType.validValues;
 
   /// Validates context type
-  static bool isValidContext(final String context) =>
-      validContexts.contains(context.toLowerCase());
+  static bool isValidContext(final String context) {
+    try {
+      AEContextType.fromString(context);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Returns all valid contexts
-  static List<String> getValidContexts() => List.from(validContexts);
+  static List<String> getValidContexts() => AEContextType.validValues;
 
   /// Error message for invalid context
   static String getInvalidContextError() =>
-      'Invalid context_type. Must be one of: ${validContexts.join(", ")}';
+      'Invalid context_type. Must be one of: ${AEContextType.validValues.join(", ")}';
 
   // ============================================================================
-  // VALID ENUMS - ACTIONS
+  // VALID ENUMS - ACTIONS (Type-safe enums in ae_types.dart)
   // ============================================================================
 
-  /// Valid action types (all contexts)
-  static const List<String> validActions = [
-    'bootstrap',
-    'install',
-    'uninstall',
-    'update',
-    'use',
-  ];
+  /// Valid action types (all contexts) - derived from AEAction enum
+  static List<String> get validActions => AEAction.validValues;
 
   /// Valid actions for registry operations (excludes bootstrap)
-  static const List<String> registryActions = [
-    'install',
-    'uninstall',
-    'update',
-    'use',
-  ];
+  static List<String> get registryActions => AEAction.registryActions;
 
   /// Validates action type
-  static bool isValidAction(final String action) =>
-      validActions.contains(action.toLowerCase());
+  static bool isValidAction(final String action) {
+    try {
+      AEAction.fromString(action);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Validates registry action type
-  static bool isValidRegistryAction(final String action) =>
-      registryActions.contains(action.toLowerCase());
+  static bool isValidRegistryAction(final String action) {
+    try {
+      final aeAction = AEAction.fromString(action);
+      return aeAction.isRegistryAction;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Returns all valid actions
-  static List<String> getValidActions() => List.from(validActions);
+  static List<String> getValidActions() => AEAction.validValues;
 
   /// Returns valid registry actions
-  static List<String> getValidRegistryActions() => List.from(registryActions);
+  static List<String> getValidRegistryActions() => AEAction.registryActions;
 
   /// Error message for invalid action
   static String getInvalidActionError() =>
-      'Invalid action. Must be one of: ${validActions.join(", ")}';
+      'Invalid action. Must be one of: ${AEAction.validValues.join(", ")}';
 
   /// Error message for invalid registry action
   static String getInvalidRegistryActionError() =>
-      'Invalid action. Must be one of: ${registryActions.join(", ")}';
+      'Invalid action. Must be one of: ${AEAction.registryActions.join(", ")}';
 
   // ============================================================================
-  // VALID ENUMS - REGISTRY OPERATIONS
+  // VALID ENUMS - REGISTRY OPERATIONS (Type-safe enums in ae_types.dart)
   // ============================================================================
 
-  /// Valid registry operations
-  static const List<String> validRegistryOperations = [
-    'submit_to_registry',
-    'get_from_registry',
-    'bootstrap_local_registry',
-  ];
+  /// Valid registry operations - derived from AERegistryOperation enum
+  static List<String> get validRegistryOperations =>
+      AERegistryOperation.validValues;
 
   /// Validates registry operation
-  static bool isValidRegistryOperation(final String operation) =>
-      validRegistryOperations.contains(operation.toLowerCase());
+  static bool isValidRegistryOperation(final String operation) {
+    try {
+      AERegistryOperation.fromString(operation);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Returns all valid registry operations
   static List<String> getValidRegistryOperations() =>
-      List.from(validRegistryOperations);
+      AERegistryOperation.validValues;
 
   /// Error message for invalid registry operation
   static String getInvalidRegistryOperationError() =>
-      'Invalid operation. Must be one of: ${validRegistryOperations.join(", ")}';
+      'Invalid operation. Must be one of: ${AERegistryOperation.validValues.join(", ")}';
 
   // ============================================================================
   // LIBRARY ID VALIDATION

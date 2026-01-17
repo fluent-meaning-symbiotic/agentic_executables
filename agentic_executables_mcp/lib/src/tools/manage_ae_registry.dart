@@ -1,4 +1,5 @@
 import '../ae_framework_config.dart';
+import '../ae_types.dart';
 import '../utils/github_raw_fetcher.dart';
 import '../utils/registry_resolver.dart';
 
@@ -13,29 +14,29 @@ class ManageAERegistryTool {
   /// Executes the tool based on the operation type.
   Future<Map<String, dynamic>> execute(
       final Map<String, dynamic> params) async {
-    final operation = params['operation'] as String?;
+    final operationStr = params['operation'] as String?;
 
-    if (operation == null || operation.isEmpty) {
+    if (operationStr == null || operationStr.isEmpty) {
       return _errorResponse('Parameter "operation" is required');
     }
 
-    if (!AEFrameworkConfig.isValidRegistryOperation(operation)) {
+    // Parse to type-safe enum with validation
+    final AERegistryOperation operation;
+    try {
+      operation = AERegistryOperation.fromString(operationStr);
+    } catch (e) {
       return _errorResponse(
         AEFrameworkConfig.getInvalidRegistryOperationError(),
       );
     }
 
     switch (operation) {
-      case 'submit_to_registry':
+      case AERegistryOperation.submitToRegistry:
         return _handleSubmit(params);
-      case 'get_from_registry':
+      case AERegistryOperation.getFromRegistry:
         return _handleGet(params);
-      case 'bootstrap_local_registry':
+      case AERegistryOperation.bootstrapLocalRegistry:
         return _handleBootstrapLocal(params);
-      default:
-        return _errorResponse(
-          AEFrameworkConfig.getInvalidRegistryOperationError(),
-        );
     }
   }
 
