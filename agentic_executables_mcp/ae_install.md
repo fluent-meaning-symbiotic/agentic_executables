@@ -83,25 +83,72 @@ echo "$SERVER_PATH"
 test -f "$SERVER_PATH" && echo "✓ Valid" || echo "✗ Invalid"
 ```
 
-### Locate Claude Desktop Config
+**Important**: Use absolute paths only, not relative (`./`) or home (`~/`).
 
-```bash
-# macOS
-CONFIG_FILE="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+### MCP Client Configuration
 
-# Windows (PowerShell)
-$CONFIG_FILE = "$env:APPDATA\Claude\claude_desktop_config.json"
+The MCP server works with any MCP-compatible client. Configure your IDE/tool below:
 
-# Linux
-CONFIG_FILE="$HOME/.config/Claude/claude_desktop_config.json"
+#### Cursor IDE
 
-# Create directory if needed
-mkdir -p "$(dirname "$CONFIG_FILE")"
+**Config Location:**
+- macOS: `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
+- Windows: `%APPDATA%\Cursor\User\globalStorage\mcp.json`
+- Linux: `~/.config/Cursor/User/globalStorage/mcp.json`
+
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "agentic_executables": {
+      "command": "/absolute/path/to/agentic_executables_mcp/build/server"
+    }
+  }
+}
 ```
 
-### Update Config File
+**Restart**: Complete quit (Cmd+Q / Alt+F4) and relaunch Cursor.
 
-Edit `claude_desktop_config.json`:
+#### Claude Desktop
+
+**Config Location:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "agentic_executables": {
+      "command": "/absolute/path/to/agentic_executables_mcp/build/server"
+    }
+  }
+}
+```
+
+**Restart**: Complete quit (Cmd+Q / Alt+F4) and relaunch Claude Desktop.
+
+#### VSCode (with MCP Extension)
+
+**Config Location:** VSCode settings.json or MCP extension config
+
+**Configuration:**
+```json
+{
+  "mcp.servers": {
+    "agentic_executables": {
+      "command": "/absolute/path/to/agentic_executables_mcp/build/server"
+    }
+  }
+}
+```
+
+**Restart**: Reload VSCode window (Cmd+Shift+P → "Reload Window").
+
+#### Generic MCP Client
+
+For any MCP-compatible client, add to your MCP configuration:
 
 ```json
 {
@@ -113,13 +160,15 @@ Edit `claude_desktop_config.json`:
 }
 ```
 
-Replace with your actual absolute path. Use `$(pwd)/build/server` to get it.
-
-**Important**: Use absolute paths only, not relative (`./`) or home (`~/`).
+**Note**: Configuration format may vary by client. Check your client's MCP documentation for exact format.
 
 ### Validate Config
 
 ```bash
+# Set CONFIG_FILE to your client's config path
+# Example for Claude Desktop (macOS):
+CONFIG_FILE="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+
 # Check JSON syntax
 python3 -m json.tool "$CONFIG_FILE" > /dev/null && echo "✓ Valid" || echo "✗ Invalid"
 
@@ -127,51 +176,50 @@ python3 -m json.tool "$CONFIG_FILE" > /dev/null && echo "✓ Valid" || echo "✗
 grep -q "agentic_executables" "$CONFIG_FILE" && echo "✓ Found" || echo "✗ Missing"
 ```
 
-### Restart Claude Desktop
-
-**Complete quit** (not just close window):
-
-- macOS: Cmd+Q
-- Windows: Alt+F4
-- Linux: File → Quit
-
-Wait 3s, then relaunch. MCP servers connect at startup only.
+**Important**: MCP servers connect at startup only. Complete quit and relaunch your IDE/client after configuration changes.
 
 ## Validation
 
-Test in Claude Desktop:
+Test MCP connection in your IDE/client:
 
-**1. List tools**:
+**1. List available MCP tools**:
 
+Ask your AI assistant: *"What MCP tools are available?"* or *"List MCP servers"*
+
+Expected: 5 tools from `agentic_executables` server:
+- `get_agentic_executable_definition`
+- `get_ae_instructions`
+- `verify_ae_implementation`
+- `evaluate_ae_compliance`
+- `manage_ae_registry`
+
+**2. Get framework definition**:
+
+Ask: *"Use get_agentic_executable_definition"* or invoke the tool directly
+
+Expected: AE framework definition, contexts, actions, principles (< 2s).
+
+**3. Fetch bootstrap instructions**:
+
+Ask: *"Use get_ae_instructions with context 'library' and action 'bootstrap'"*
+
+Expected: Returns `ae_bootstrap.md` + `ae_context.md` content (< 3s).
+
+**4. Test registry fetch**:
+
+Ask: *"Use manage_ae_registry to get python_requests install file"*
+
+Expected: Returns `ae_install.md` for `python_requests` (< 5s).
+
+**5. Verify server connectivity**:
+
+Test server directly (should wait for input):
+```bash
+./build/server
+# Press Ctrl+C to exit
 ```
-"What MCP tools are available?"
-```
 
-Expected: 5 tools from agentic_executables server.
-
-**2. Get definition**:
-
-```
-"Use get_agentic_executable_definition"
-```
-
-Expected: AE definition, contexts, actions, principles (< 2s).
-
-**3. Fetch instructions**:
-
-```
-"Use get_ae_instructions with context 'library' and action 'bootstrap'"
-```
-
-Expected: Returns ae_bootstrap.md content (< 3s).
-
-**4. Test registry**:
-
-```
-"Use manage_ae_registry to get python_requests install file"
-```
-
-Expected: Returns ae_install.md for python_requests (< 5s).
+If server exits immediately, check logs or run with verbose output.
 
 ## Alternative Methods
 
@@ -182,17 +230,37 @@ docker build -t prompts-framework-mcp .
 docker run -i prompts-framework-mcp
 ```
 
-Config: `"command": "docker", "args": ["run", "-i", "prompts-framework-mcp"]`
+**MCP Client Config** (works with any MCP client):
+```json
+{
+  "mcpServers": {
+    "agentic_executables": {
+      "command": "docker",
+      "args": ["run", "-i", "prompts-framework-mcp"]
+    }
+  }
+}
+```
 
-**Dev mode** (no compilation):
+**Dev mode** (no compilation, requires Dart SDK):
 
 ```bash
 dart run bin/agentic_executables_mcp_server.dart
 ```
 
-Config: `"command": "dart", "args": ["run", "/abs/path/bin/agentic_executables_mcp_server.dart"]`
+**MCP Client Config** (works with any MCP client):
+```json
+{
+  "mcpServers": {
+    "agentic_executables": {
+      "command": "dart",
+      "args": ["run", "/absolute/path/to/bin/agentic_executables_mcp_server.dart"]
+    }
+  }
+}
+```
 
-Note: Slower startup (~2s) but no build step.
+**Note**: Dev mode has slower startup (~2s) but no build step required. Docker method works without Dart SDK installation.
 
 ## Troubleshooting
 
@@ -206,11 +274,13 @@ Note: Slower startup (~2s) but no build step.
 
 **Tools not showing**:
 
-- Verify config path: `ls "$CONFIG_FILE"`
-- Check JSON: `python3 -m json.tool "$CONFIG_FILE"`
+- Verify config path exists: `ls "$CONFIG_FILE"`
+- Check JSON syntax: `python3 -m json.tool "$CONFIG_FILE"`
 - Use absolute paths (not `./` or `~/`)
-- Test server: `./build/server` (should wait for input)
-- Complete quit + relaunch Claude (Cmd+Q on macOS)
+- Test server directly: `./build/server` (should wait for input)
+- Complete quit + relaunch your IDE/client (not just close window)
+- Check IDE/client logs for MCP connection errors
+- Verify MCP support: Some clients require extensions/plugins for MCP
 
 **Registry fails**:
 
@@ -226,20 +296,12 @@ Note: Slower startup (~2s) but no build step.
 - [ ] Dart SDK 3.0+, Git 2.0+ installed
 - [ ] `pubspec.lock` and `.dart_tool/` exist
 - [ ] `build/server` exists (~15-20MB)
-- [ ] Server starts without exit
-- [ ] Config has absolute path
-- [ ] Valid JSON in config
-- [ ] Claude completely restarted
-- [ ] 5 tools visible
+- [ ] Server starts without exit (waits for input)
+- [ ] Config file created with absolute path
+- [ ] Valid JSON in config file
+- [ ] IDE/client completely restarted (not just window close)
+- [ ] 5 tools visible in MCP tools list
 - [ ] All validation tests pass
-
-## Uninstall
-
-```bash
-# Remove from config, restart Claude
-# rm build/server
-# rm -rf .dart_tool/ pubspec.lock
-```
 
 ## Support
 
@@ -247,4 +309,11 @@ Issues: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
 
 ---
 
-**Agent Notes**: Use absolute paths. Validate each step. Test registry. Complete restart required. ~100MB disk, network needed.
+**Agent Notes**: 
+- Use absolute paths (not `./` or `~/`)
+- Validate each step before proceeding
+- Test registry connectivity
+- Complete IDE/client restart required (not just window close)
+- ~100MB disk space needed
+- Network access required for registry operations
+- Works with any MCP-compatible client (Cursor, Claude Desktop, VSCode, etc.)
