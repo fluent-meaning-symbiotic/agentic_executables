@@ -41,12 +41,31 @@ df -h .
 
 ### Repository Setup
 
+**Choose Installation Location:**
+
+Decide where to clone the repository. Common locations:
+- `~/mcp/` - Dedicated MCP servers directory
+- `~/projects/` - General projects directory
+- `~/.local/share/` - User-local applications (Linux)
+- Any custom location you prefer
+
 **Clone from GitHub:**
 
 ```bash
+# Set your preferred installation directory
+INSTALL_DIR="${INSTALL_DIR:-$HOME/mcp}"  # Default: ~/mcp, override with INSTALL_DIR=/custom/path
+
+# Create directory if needed
+mkdir -p "$INSTALL_DIR"
+
 # Clone and navigate
+cd "$INSTALL_DIR"
 git clone https://github.com/fluent-meaning-symbiotic/agentic_executables.git
 cd agentic_executables/agentic_executables_mcp
+
+# Get absolute path for later use
+REPO_PATH="$(pwd)"
+echo "Repository installed at: $REPO_PATH"
 
 # Validate
 test -f pubspec.yaml && echo "✓ Ready" || echo "✗ Failed"
@@ -55,8 +74,15 @@ test -f pubspec.yaml && echo "✓ Ready" || echo "✗ Failed"
 **If Already Cloned:**
 
 ```bash
+# Navigate to existing installation
 cd /path/to/agentic_executables/agentic_executables_mcp
+
+# Update repository
 git pull origin main
+
+# Get absolute path
+REPO_PATH="$(pwd)"
+echo "Repository at: $REPO_PATH"
 ```
 
 ### Installation Steps
@@ -114,7 +140,7 @@ Note: Dev mode has slower startup (~2s) but no build step required.
 ### Get Absolute Server Path
 
 ```bash
-# Get absolute path
+# Get absolute path (run from agentic_executables_mcp directory)
 SERVER_PATH="$(pwd)/build/server"
 echo "$SERVER_PATH"
 
@@ -124,21 +150,128 @@ test -f "$SERVER_PATH" && echo "✓ Valid" || echo "✗ Invalid"
 
 **Important**: Use absolute paths only, not relative (`./`) or home (`~/`).
 
+### Detect MCP Client Configuration
+
+Before configuring, detect your MCP client's config file location:
+
+```bash
+# Detect Cursor config (check both possible locations)
+if [ -f "$HOME/.cursor/mcp.json" ]; then
+  CURSOR_CONFIG="$HOME/.cursor/mcp.json"
+elif [ -f "$HOME/Library/Application Support/Cursor/User/globalStorage/mcp.json" ]; then
+  CURSOR_CONFIG="$HOME/Library/Application Support/Cursor/User/globalStorage/mcp.json"
+else
+  CURSOR_CONFIG=""
+fi
+
+# Detect Claude Desktop config
+if [ -f "$HOME/Library/Application Support/Claude/claude_desktop_config.json" ]; then
+  CLAUDE_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+elif [ -f "$HOME/.config/Claude/claude_desktop_config.json" ]; then
+  CLAUDE_CONFIG="$HOME/.config/Claude/claude_desktop_config.json"
+else
+  CLAUDE_CONFIG=""
+fi
+
+# Report findings
+echo "Cursor config: ${CURSOR_CONFIG:-Not found}"
+echo "Claude Desktop config: ${CLAUDE_CONFIG:-Not found}"
+```
+
 ### MCP Client Configuration
+
+**⚠️ CRITICAL**: Always backup existing config files before modifying. They may contain other MCP servers.
+
+```bash
+# Backup existing config (replace CONFIG_FILE with your actual path)
+CONFIG_FILE="<your-config-path>"
+if [ -f "$CONFIG_FILE" ]; then
+  cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+  echo "✓ Backup created"
+fi
+```
 
 The MCP server works with any MCP-compatible client. Configure your IDE/tool below:
 
 #### Cursor IDE
 
-**Config Location:**
-- macOS: `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
+**Config Locations (check both):**
+- Primary: `~/.cursor/mcp.json` (most common)
+- Alternative: `~/Library/Application Support/Cursor/User/globalStorage/mcp.json` (macOS)
 - Windows: `%APPDATA%\Cursor\User\globalStorage\mcp.json`
 - Linux: `~/.config/Cursor/User/globalStorage/mcp.json`
 
-**Configuration:**
+**Detect and Configure:**
+
+```bash
+# Detect Cursor config location
+if [ -f "$HOME/.cursor/mcp.json" ]; then
+  CONFIG_FILE="$HOME/.cursor/mcp.json"
+elif [ -f "$HOME/Library/Application Support/Cursor/User/globalStorage/mcp.json" ]; then
+  CONFIG_FILE="$HOME/Library/Application Support/Cursor/User/globalStorage/mcp.json"
+else
+  # Create directory if needed
+  mkdir -p "$HOME/.cursor"
+  CONFIG_FILE="$HOME/.cursor/mcp.json"
+fi
+
+# Backup existing config
+if [ -f "$CONFIG_FILE" ]; then
+  cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+fi
+
+# Set server path (update this to your actual path)
+SERVER_PATH="/absolute/path/to/agentic_executables_mcp/build/server"
+
+# Merge configuration safely (preserves existing servers)
+python3 << EOF
+import json
+import sys
+from pathlib import Path
+
+config_file = Path("$CONFIG_FILE")
+server_path = "$SERVER_PATH"
+
+# Load existing config or create new
+if config_file.exists():
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+else:
+    config = {}
+
+# Ensure mcpServers exists
+if "mcpServers" not in config:
+    config["mcpServers"] = {}
+
+# Add agentic_executables server (only if not exists or update if needed)
+config["mcpServers"]["agentic_executables"] = {
+    "command": server_path
+}
+
+# Write back
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print(f"✓ Configuration updated: {config_file}")
+print(f"✓ Server entry added/updated: agentic_executables")
+EOF
+
+echo "✓ Cursor config updated at: $CONFIG_FILE"
+```
+
+**Manual Configuration** (if script doesn't work):
+
+If your `mcp.json` already exists with other servers, manually merge:
+
 ```json
 {
   "mcpServers": {
+    "existing_server_1": {
+      "command": "/path/to/existing/server1"
+    },
+    "existing_server_2": {
+      "command": "/path/to/existing/server2"
+    },
     "agentic_executables": {
       "command": "/absolute/path/to/agentic_executables_mcp/build/server"
     }
@@ -150,15 +283,78 @@ The MCP server works with any MCP-compatible client. Configure your IDE/tool bel
 
 #### Claude Desktop
 
-**Config Location:**
+**Config Locations:**
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 - Linux: `~/.config/Claude/claude_desktop_config.json`
 
-**Configuration:**
+**Detect and Configure:**
+
+```bash
+# Detect Claude Desktop config location
+if [ -f "$HOME/Library/Application Support/Claude/claude_desktop_config.json" ]; then
+  CONFIG_FILE="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+elif [ -f "$HOME/.config/Claude/claude_desktop_config.json" ]; then
+  CONFIG_FILE="$HOME/.config/Claude/claude_desktop_config.json"
+else
+  mkdir -p "$HOME/Library/Application Support/Claude"
+  CONFIG_FILE="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+fi
+
+# Backup existing config
+if [ -f "$CONFIG_FILE" ]; then
+  cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+fi
+
+# Set server path (update this to your actual path)
+SERVER_PATH="/absolute/path/to/agentic_executables_mcp/build/server"
+
+# Merge configuration safely (preserves existing servers)
+python3 << EOF
+import json
+import sys
+from pathlib import Path
+
+config_file = Path("$CONFIG_FILE")
+server_path = "$SERVER_PATH"
+
+# Load existing config or create new
+if config_file.exists():
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+else:
+    config = {}
+
+# Ensure mcpServers exists
+if "mcpServers" not in config:
+    config["mcpServers"] = {}
+
+# Add agentic_executables server (only if not exists or update if needed)
+config["mcpServers"]["agentic_executables"] = {
+    "command": server_path
+}
+
+# Write back
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print(f"✓ Configuration updated: {config_file}")
+print(f"✓ Server entry added/updated: agentic_executables")
+EOF
+
+echo "✓ Claude Desktop config updated at: $CONFIG_FILE"
+```
+
+**Manual Configuration** (if script doesn't work):
+
+If your `claude_desktop_config.json` already exists with other servers, manually merge:
+
 ```json
 {
   "mcpServers": {
+    "existing_server_1": {
+      "command": "/path/to/existing/server1"
+    },
     "agentic_executables": {
       "command": "/absolute/path/to/agentic_executables_mcp/build/server"
     }
@@ -187,19 +383,57 @@ The MCP server works with any MCP-compatible client. Configure your IDE/tool bel
 
 #### Generic MCP Client
 
-For any MCP-compatible client, add to your MCP configuration:
+For any MCP-compatible client, safely merge into existing configuration:
 
-```json
-{
-  "mcpServers": {
-    "agentic_executables": {
-      "command": "/absolute/path/to/agentic_executables_mcp/build/server"
-    }
-  }
+```bash
+# Set your config file path and server path
+CONFIG_FILE="<path-to-your-mcp-config.json>"
+SERVER_PATH="/absolute/path/to/agentic_executables_mcp/build/server"
+
+# Backup existing config
+if [ -f "$CONFIG_FILE" ]; then
+  cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+fi
+
+# Merge configuration safely
+python3 << EOF
+import json
+import sys
+from pathlib import Path
+
+config_file = Path("$CONFIG_FILE")
+server_path = "$SERVER_PATH"
+
+# Load existing config or create new
+if config_file.exists():
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+else:
+    config = {}
+
+# Ensure mcpServers exists (adjust key name if your client uses different format)
+if "mcpServers" not in config:
+    config["mcpServers"] = {}
+
+# Add agentic_executables server
+config["mcpServers"]["agentic_executables"] = {
+    "command": server_path
 }
+
+# Write back
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print(f"✓ Configuration updated: {config_file}")
+EOF
 ```
 
-**Note**: Configuration format may vary by client. Check your client's MCP documentation for exact format.
+**Note**: Configuration format may vary by client. Check your client's MCP documentation for exact format. Common variations:
+- `mcpServers` (most common)
+- `mcp.servers` (VSCode extension)
+- `mcp.servers` nested structure
+
+Always preserve existing server entries when merging.
 
 #### Docker Configuration
 
@@ -233,19 +467,61 @@ For dev mode (Dart source), use:
 
 ### Validate Config
 
+**Check Configuration:**
+
 ```bash
-# Set CONFIG_FILE to your client's config path
-# Example for Claude Desktop (macOS):
-CONFIG_FILE="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+# Detect and validate Cursor config
+if [ -f "$HOME/.cursor/mcp.json" ]; then
+  CONFIG_FILE="$HOME/.cursor/mcp.json"
+elif [ -f "$HOME/Library/Application Support/Cursor/User/globalStorage/mcp.json" ]; then
+  CONFIG_FILE="$HOME/Library/Application Support/Cursor/User/globalStorage/mcp.json"
+fi
+
+# Or set manually for your client
+# CONFIG_FILE="<your-config-path>"
+
+if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+  echo "✗ Config file not found. Please set CONFIG_FILE manually."
+  exit 1
+fi
 
 # Check JSON syntax
-python3 -m json.tool "$CONFIG_FILE" > /dev/null && echo "✓ Valid" || echo "✗ Invalid"
+python3 -m json.tool "$CONFIG_FILE" > /dev/null && echo "✓ Valid JSON" || echo "✗ Invalid JSON"
 
 # Check entry exists
-grep -q "agentic_executables" "$CONFIG_FILE" && echo "✓ Found" || echo "✗ Missing"
+grep -q "agentic_executables" "$CONFIG_FILE" && echo "✓ Entry found" || echo "✗ Entry missing"
+
+# Verify server path exists
+SERVER_PATH=$(python3 << EOF
+import json
+with open("$CONFIG_FILE", 'r') as f:
+    config = json.load(f)
+    print(config.get("mcpServers", {}).get("agentic_executables", {}).get("command", ""))
+EOF
+)
+
+if [ -n "$SERVER_PATH" ] && [ -f "$SERVER_PATH" ]; then
+  echo "✓ Server path valid: $SERVER_PATH"
+else
+  echo "✗ Server path invalid or missing: $SERVER_PATH"
+fi
+
+# List all configured servers (verify no conflicts)
+echo "Configured MCP servers:"
+python3 << EOF
+import json
+with open("$CONFIG_FILE", 'r') as f:
+    config = json.load(f)
+    servers = config.get("mcpServers", {})
+    for name in servers.keys():
+        print(f"  - {name}")
+EOF
 ```
 
-**Important**: MCP servers connect at startup only. Complete quit and relaunch your IDE/client after configuration changes.
+**Important**: 
+- MCP servers connect at startup only. Complete quit and relaunch your IDE/client after configuration changes.
+- Always verify existing servers are preserved after configuration updates.
+- Keep backup files until you confirm everything works.
 
 ## Integration
 
@@ -260,19 +536,28 @@ grep -q "agentic_executables" "$CONFIG_FILE" && echo "✓ Found" || echo "✗ Mi
 
 **Step 1: Locate MCP Configuration**
 
-Identify your MCP client's configuration file location (see Config section above).
+Use the detection scripts above to find your MCP client's configuration file location, or manually identify it (see Config section above).
 
-**Step 2: Add Server Entry**
+**Step 2: Backup Existing Configuration**
 
-Add the `agentic_executables` server entry to your MCP configuration with absolute path to `build/server`.
+Always backup your existing config file before making changes:
 
-**Step 3: Restart Client**
+```bash
+CONFIG_FILE="<your-config-path>"
+cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+```
+
+**Step 3: Add Server Entry Safely**
+
+Use the merge scripts provided above to add the `agentic_executables` server entry while preserving existing servers. Never overwrite the entire config file - always merge.
+
+**Step 4: Restart Client**
 
 Complete quit (not just close window) and relaunch your IDE/client. MCP servers connect at startup only.
 
-**Step 4: Verify Integration**
+**Step 5: Verify Integration**
 
-Test MCP connection (see Validation section).
+Test MCP connection (see Validation section). Verify that all existing servers still work.
 
 ### Bridge to Application Layers
 
@@ -414,6 +699,8 @@ Expected: Returns `ae_install.md` for `python_requests` (< 5s).
 - Complete quit + relaunch your IDE/client (not just close window)
 - Check IDE/client logs for MCP connection errors
 - Verify MCP support: Some clients require extensions/plugins for MCP
+- Verify existing servers weren't accidentally removed: Check backup file
+- For Cursor: Check both `~/.cursor/mcp.json` and `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
 
 **Registry fails**:
 - Check library exists: https://github.com/fluent-meaning-symbiotic/agentic_executables/tree/main/ae_use_registry
@@ -429,7 +716,11 @@ Issues: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
 ---
 
 **Agent Notes**: 
+- **Always backup existing config files** before modifying - they may contain other MCP servers
+- **Use merge scripts** to preserve existing server configurations - never overwrite entire config files
+- **Detect config location** first - Cursor may use `~/.cursor/mcp.json` or `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
 - Use absolute paths (not `./` or `~/`)
+- Ask user for preferred installation directory - don't assume clone location
 - Validate each step before proceeding
 - Test registry connectivity
 - Complete IDE/client restart required (not just window close)
@@ -437,3 +728,4 @@ Issues: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
 - Network access required for registry operations
 - Works with any MCP-compatible client (Cursor, Claude Desktop, VSCode, etc.)
 - MCP servers connect at startup only - configuration changes require full restart
+- Verify all existing servers still work after adding agentic_executables
