@@ -1,6 +1,7 @@
 <!--
-version: 1.0.0
+version: 1.1.0
 repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
+registry: https://github.com/fluent-meaning-symbiotic/agentic_executables_registry
 license: MIT
 author: Arenukvern and contributors
 -->

@@ -6,7 +6,7 @@ import 'ae_framework_config.dart';
 /// configuration (contexts, actions, registry settings), use AEFrameworkConfig.
 class AEValidationConfig {
   /// Current AE specification version
-  static const String currentVersion = '1.0.0';
+  static const String currentVersion = '1.1.0';
 
   /// AE repository URL
   static String get repositoryUrl => AEFrameworkConfig.repositoryUrl;
@@ -23,7 +23,9 @@ class AEValidationConfig {
 
   /// Returns required files based on context and action.
   static List<String> getRequiredFiles(
-      final String contextType, final String action) {
+    final String contextType,
+    final String action,
+  ) {
     if (contextType == 'library') {
       switch (action) {
         case 'bootstrap':
