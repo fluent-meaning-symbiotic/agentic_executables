@@ -27,6 +27,7 @@ Agentic Executables treat libraries as executable programs with structured, agen
 If you prefer to see it visually:
 - [short video explanation](https://youtu.be/DoINqZOnrTI)
 - [long video with demonstration](https://youtu.be/5j3TvQqiVKQ)
+- [an article with theory](https://dev.to/arenukvern/reimagine-libraries-management-as-apps-using-agentic-executable-framework-ami)
 
 ## Quick Start
 
