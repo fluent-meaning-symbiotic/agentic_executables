@@ -24,6 +24,11 @@ This is the framework-agnostic approach enabling AI agents to autonomously manag
 
 Agentic Executables treat libraries as executable programs with structured, agent-readable instructions. Instead of relying on human documentation, AI agents follow standardized `.md` files to install, configure, integrate, update, and uninstall libraries autonomously.
 
+If you prefer to see it visually:
+- [short video explanation](https://youtu.be/DoINqZOnrTI)
+- [long video with demonstration](https://youtu.be/5j3TvQqiVKQ)
+- [an article with theory](https://dev.to/arenukvern/reimagine-libraries-management-as-apps-using-agentic-executable-framework-ami)
+
 ## Quick Start
 
 ### You are Developer:
@@ -143,11 +148,11 @@ Library Author                  Registry                   Developer
 ```
 
 <p align="center">
-  <img src="docs/workflow_overview.png" alt="Workflow overview" style="max-width:100%;">
+  <img src="docs/workflow_developer.png" alt="Workflow for developer" style="max-width:100%;">
 </p>
 
 <p align="center">
-  <img src="docs/workflow_overview.png" alt="Workflow overview" style="max-width:100%;">
+  <img src="docs/workflow_lib_author.png" alt="Workflow for library author" style="max-width:100%;">
 </p>
 
 ## Resources
