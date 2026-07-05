@@ -148,6 +148,12 @@ cd ../agentic_executables_cli && dart test
 cd ../agentic_executables_mcp && dart test
 ```
 
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=fluent-meaning-symbiotic/agentic_executables&type=Date)](https://www.star-history.com/#fluent-meaning-symbiotic/agentic_executables&Date)
+
+
 ## License
 
-MIT
+[MIT](LICENSE)
