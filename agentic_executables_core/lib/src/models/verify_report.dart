@@ -18,6 +18,7 @@ class VerifyEntry {
     required this.canonical,
     required this.featureId,
     required this.message,
+    this.reason,
     this.downstreamCount,
     this.acceptedDrift = false,
   });
@@ -27,6 +28,16 @@ class VerifyEntry {
   final String canonical;
   final FeatureId? featureId;
   final String message;
+
+  /// Machine-readable cause so agents branch on data, not prose:
+  /// - `no_evidence_link`: the claim exists but no evidence command is
+  ///   recorded. This does NOT mean the behavior is untested — search the
+  ///   existing suite and link what exists before writing new tests.
+  /// - `evidence_failed`: a recorded evidence command ran and failed; the
+  ///   claim is contradicted by its own proof.
+  /// - `claimed_without_command`: tests cell says yes but no provenance
+  ///   command is recorded (legacy row).
+  final String? reason;
   final int? downstreamCount;
   final bool acceptedDrift;
 
@@ -37,6 +48,7 @@ class VerifyEntry {
         'canonical': canonical,
         if (featureId != null) 'feature_id': featureId.toString(),
         'message': message,
+        if (reason != null) 'reason': reason,
         if (downstreamCount != null) 'downstream_count': downstreamCount,
         if (acceptedDrift) 'accepted_drift': true,
       };

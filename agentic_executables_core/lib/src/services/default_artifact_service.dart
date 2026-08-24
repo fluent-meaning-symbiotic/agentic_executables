@@ -250,7 +250,13 @@ class DefaultArtifactService implements ArtifactService {
               artifact: pack.name,
               canonical: ref.conceptId,
               featureId: feature.id,
-              message: evidenceFailure ?? 'invariant unverified: $invariant',
+              message: evidenceFailure ??
+                  'invariant has no evidence link (this does not mean the '
+                      'behavior is untested — search the existing suite and '
+                      'link what exists): $invariant',
+              reason: evidenceFailure == null
+                  ? 'no_evidence_link'
+                  : 'evidence_failed',
             ));
             continue;
           }

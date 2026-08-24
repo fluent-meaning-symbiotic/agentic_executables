@@ -44,7 +44,19 @@ the whole story in one command.
 
 ## Status
 
-AE v3.x is in beta. The core functionality is stable, but the API is subject to change.
+**v3.2.0 (unreleased) — August 2026.** Core functionality is stable; API may still change.
+
+Recently landed:
+
+- **Code-agnostic distillation** — `ae canonical distill --repo <url>` distills any public repo in any language via a generic extractor + delegation; language extractors are accelerators, not gates.
+- **Evidence enforcement** — `ae artifact mark-evidence` records test provenance; `verify --run-tests` executes recorded commands instead of trusting hand-edited cells. A pack can no longer lie about its tests.
+- **Spec importers** — Spec Kit / ADR / markdown import deterministically (`ae canonical import-spec`); seed corpus in [`canonicals/`](canonicals/) (OAuth2 PKCE, MCP server).
+- **Delegation architecture** — AE never calls a model. It emits delegation instructions for any host agent and validates/merges the returned draft with strict ID stability.
+- **Self-dogfooded** — all three AE packages are distilled into verified canonicals (`ae-core`, `ae-cli2`, `ae-mcp`), Tier-1 clean with executed test evidence. Also validated end-to-end on external projects (JS/TS repo, Dart ECS workspace).
+
+Known gaps: docs→code generation does not exist (verification-only by design); registry corpus is small (~2 seed canonicals plus self-canonicals); JS/TS/Python/Go extractors remain optional accelerators.
+
+See the [roadmap](docs_site/docs/ae-3/roadmap.md) and [CHANGELOG](CHANGELOG.md) for details.
 
 ## What is AE?
 
@@ -128,6 +140,16 @@ cd agentic_executables_cli && dart pub get && dart run bin/ae.dart definition
 | `ae hub status`                     | Show hub artifacts and config                                                                                                         |
 | `ae hub pull`                       | Pull from remote registry                                                                                                             |
 | `ae hub push`                       | Generate push instructions                                                                                                            |
+| `ae init`                           | Heuristic-extract every package into artifact packs                                                                                   |
+| `ae canonical import-spec`          | Import a spec document (Spec Kit / ADR / markdown) as canonical rows — no LLM                                                         |
+| `ae canonical scaffold`             | Seed a canonical from extracted artifacts (no LLM)                                                                                    |
+| `ae canonical distill`              | Emit a delegation task (`--pack` or code-agnostic `--repo <url>`) or merge the agent's draft (`--from-output`)                        |
+| `ae canonical accept-concept`       | Promote a distilled cross-cutting concept to a stable matrix row                                                                      |
+| `ae artifact link`                  | Attach a realization pack to a canonical contract                                                                                     |
+| `ae artifact verify`                | Tiered gap report; `--run-tests` executes recorded evidence commands                                                                  |
+| `ae artifact mark-evidence`         | Record test provenance for one feature row                                                                                            |
+| `ae status`                         | Project-wide tier-classified cockpit                                                                                                  |
+| `ae sync`                           | Re-scan sources, detect drift                                                                                                         |
 | `ae know build`                     | Extract knowledge from URL, repo, or file (supports PDF via `--format pdf` or auto; `--on-conflict reuse\|update\|fail\|new_version`) |
 | `ae know list`                      | List stored knowledge packs                                                                                                           |
 | `ae know show`                      | Display knowledge pack content                                                                                                        |
@@ -146,18 +168,27 @@ cd agentic_executables_cli && dart pub get && dart run bin/ae.dart definition
 | `ae definition`                     | Framework definition                                                                                                                  |
 | `ae skill install [--upgrade]`      | Install AE skill template                                                                                                             |
 
+Full reference: [`docs_site/docs/ae-3/cli-reference.md`](docs_site/docs/ae-3/cli-reference.md).
+
 ## MCP Tools
 
-| Tool              | Purpose                                       |
-| ----------------- | --------------------------------------------- |
-| `ae_definition`   | Framework definition                          |
-| `ae_instructions` | Context guidance (supports `--know`)          |
-| `ae_generate`     | Lifecycle file generation (supports `--know`) |
-| `ae_registry`     | Registry operations                           |
-| `ae_hub`          | Hub management                                |
-| `ae_know`         | Knowledge extraction                          |
-| `ae_verify`       | Implementation verification                   |
-| `ae_evaluate`     | Compliance evaluation                         |
+| Tool              | Purpose                                           |
+| ----------------- | ------------------------------------------------- |
+| `ae_definition`   | Framework definition                              |
+| `ae_instructions` | Context guidance (supports `--know`)              |
+| `ae_generate`     | Lifecycle file generation (supports `--know`)     |
+| `ae_registry`     | Registry operations                               |
+| `ae_hub`          | Hub management                                    |
+| `ae_init`         | Extract packages into artifact packs              |
+| `ae_status`       | Project-wide tier-classified cockpit              |
+| `ae_sync`         | Re-scan sources, detect drift                     |
+| `ae_canonical`    | Canonical lifecycle incl. distill / distill-merge |
+| `ae_artifact`     | Link, verify (`--run-tests`), mark-evidence       |
+| `ae_doctor`       | Preflight checks                                  |
+| `ae_package`      | Package resolve / validate                        |
+| `ae_know`         | Knowledge extraction (v2 carry-over)              |
+| `ae_verify`       | Implementation verification                       |
+| `ae_evaluate`     | Compliance evaluation                             |
 
 ## Architecture
 

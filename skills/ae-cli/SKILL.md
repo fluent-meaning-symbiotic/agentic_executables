@@ -105,10 +105,14 @@ ae skill install
 5. `ae canonical distill --concept <pkg> --from-output <draft.json>`
 6. `ae artifact link --pack <pack> --canonical <concept>`
 7. `ae artifact verify --pack <pack>` — close Tier 1/2 findings
-8. For each Tier-1 row: `ae artifact mark-evidence` with a REAL passing test
+8. For each Tier-1 row: **first search the existing test suite for coverage
+   of the claim** (test filenames, symbol names, behavior keywords). Tier-1
+   means "claim not linked to evidence", NEVER "behavior untested". Link
+   what exists via `ae artifact mark-evidence` with a REAL passing test
    command (relative to the pack's source path), then re-verify with
-   `--run-tests`. Never mark evidence for a test that does not exist —
-   verify executes the command and catches the lie.
+   `--run-tests`. Only write a NEW test when you have confirmed no existing
+   test covers the claim. Never mark evidence for a test that does not
+   exist — verify executes the command and catches the lie.
 
 ### Distill an external standard from its reference repo (code-agnostic)
 
