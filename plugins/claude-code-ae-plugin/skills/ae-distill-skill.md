@@ -1,6 +1,6 @@
 ---
 name: ae-distill-skill
-description: AE 3.0 distillation contract. Use when Claude receives a DistillationTask object and must return a DistillationOutput.
+description: AE distillation wire contract. Use when you receive AE delegation instructions embedding a DistillationTask (ae.distillation.task.v1) and must return an ae.canonical.draft.v1 JSON for merge via 'ae canonical distill --from-output'. Applies to any source language — tasks emitted via `--repo <url>` use the generic extractor and the same contract.
 ---
 
 # AE Distillation Contract
@@ -20,10 +20,10 @@ When you receive a `DistillationTask` (schema: `ae.distillation.task.v1`), retur
     "name": "dart_ecs_render3d_core",
     "language": "dart",
     "files": ["lib/src/passes/basic.dart", "lib/src/scene.dart"],
-    "structural_summary": "<from the artifact's existing index.md>"
+    "structural_summary": "<from the artifact's existing index.md>",
   },
   "matrix_seed_rows": [/* canonical rows already present, optional */],
-  "examples": [/* few-shot from prior accepted distillations, optional */]
+  "examples": [/* few-shot from prior accepted distillations, optional */],
 }
 ```
 
@@ -41,14 +41,14 @@ When you receive a `DistillationTask` (schema: `ae.distillation.task.v1`), retur
     "version": 1,
     "column_schema": [
       { "id": "spec", "type": "text" },
-      { "id": "invariant", "type": "text" }
+      { "id": "invariant", "type": "text" },
     ],
     "features": [
       { "id": "render.scene_extract", "spec": "...", "invariant": "..." },
-      { "id": "render.draw_pass",     "spec": "...", "invariant": "..." }
-    ]
+      { "id": "render.draw_pass", "spec": "...", "invariant": "..." },
+    ],
   },
-  "patterns_md": "...optional impl-specific idioms..."
+  "patterns_md": "...optional impl-specific idioms...",
 }
 ```
 

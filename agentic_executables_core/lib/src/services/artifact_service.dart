@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../models/artifact_matrix.dart';
 import '../models/artifact_pack.dart';
 import '../models/verify_report.dart';
 
@@ -14,6 +15,20 @@ class SyncOutcome {
   /// the artifact's `meta.source.path` did not exist on disk, causing the
   /// pack to be removed from the hub.
   final bool pruned;
+}
+
+/// Result of [ArtifactService.markEvidence]: the feature's cell before and
+/// after, so callers can show exactly what changed.
+class MarkEvidenceResult {
+  const MarkEvidenceResult({
+    required this.pack,
+    required this.featureId,
+    required this.cell,
+  });
+
+  final String pack;
+  final String featureId;
+  final ArtifactCell cell;
 }
 
 abstract interface class ArtifactService {
@@ -71,7 +86,29 @@ abstract interface class ArtifactService {
   ///   - Tier 4: unreferenced canonicals (present in hub but not in
   ///     [ArtifactMeta.referencesCanonical])
   /// Tier 2 (upstream blockers) is project-scoped — see [verifyProject].
-  Future<VerifyReport> verifyOne(final String packName);
+  ///
+  /// When [runTests] is true, every referenced-canonical row carrying an
+  /// `evidence_command` is executed (not trusted): exit 0 confirms the
+  /// evidence; a failing command becomes a Tier 1 entry — the pack is
+  /// caught lying about its own evidence.
+  Future<VerifyReport> verifyOne(
+    final String packName, {
+    final bool runTests = false,
+  });
+
+  /// Records test evidence for one feature row of an artifact. Sets the
+  /// cell's test status, records provenance ([location], [testCommand]),
+  /// and promotes `impl: missing` to [impl] (default `done`) so evidence
+  /// never sits on a missing implementation.
+  Future<MarkEvidenceResult> markEvidence(
+    final String packName,
+    final String featureId, {
+    required final String testCommand,
+    final String? location,
+    final String? notes,
+    final TestStatus tests = TestStatus.yes,
+    final ImplStatus impl = ImplStatus.done,
+  });
 
   /// Project-wide verify across all artifacts. Computes downstream-demand
   /// counts via the `requires:` graph. Tier 2 entries are sorted by

@@ -11,6 +11,10 @@ What's next, what's deferred, what's deliberately not coming. AE 3.0 ships lean 
 
 Things 3.0 is designed for and that should land within weeks of 3.0:
 
+- **Spec importers (SHIPPED 2026-08).** `ae canonical import-spec` deterministically imports GitHub Spec Kit specs, ADRs, and structured markdown as canonical feature rows — no LLM, merge-safe. The strategy shifted from "authors write canonicals" to "make any existing spec verifiable"; language extractors stop being the adoption bottleneck.
+- **AE never calls a model (SHIPPED 2026-08, breaking).** The executor family (claude_code / codex / byok) was hard-cut. Distillation is now emit-delegation (task + instructions for the host agent) plus validated merge (`--from-output` / op `distill-merge`). AE is a tool that delegates instructions — never a model caller.
+- **Code-agnostic distillation (SHIPPED 2026-08).** `ae canonical distill --repo <url>` distills any public repo in any language: shallow clone → generic-extractor ingest (specific extractor when recognized) → delegation emit. Language extractors are now accelerators, not gates. Self-dogfooded: all three AE packages distilled into verified canonicals (`ae-core`, `ae-cli2`, `ae-mcp`), Tier-1 clean with executed evidence.
+
 - **Polished `ae status` cockpit UI.** The current report is honest but plain. 3.1 adds proper formatting, color, paging, and a `--watch` mode for `ae artifact verify` that's friendly inside a terminal split next to the editor.
 - **Pre-commit hook recipes.** A small set of recipes for git pre-commit / pre-push that run `ae artifact verify --strict` against the artifacts touched by the commit, so Tier 1+2 gaps fail before they merge.
 - **Cursor-flavored Claude Code plugin equivalent.** Same shape as `plugins/claude-code-ae-plugin/`, adapted to Cursor's command and skill conventions. See [Claude Code plugin](./plugin).
@@ -24,8 +28,7 @@ Larger pieces that need their own design rounds but are firmly on the trajectory
 
 - **Auto package-hub discovery.** The resolver already supports `<pkg>/.ae_hub/canonical/`. 3.x walks installed packages automatically and offers to pull canonicals into the project hub. Until then, [`ae canonical import`](./cli-reference#ae-canonical-import) is the manual path.
 - **`ae canonical migrate`.** Automated upgrade of artifacts to a newer canonical snapshot. Orthogonal to the "no migration from old `know/` layout" decision in spec §9 — that one is hard-cut on purpose; this one is canonical-version migration only, and is much smaller in scope.
-- **JS/TS heuristic extractor.** The [`HeuristicExtractor`](./adapters#heuristicextractor-language-aware-structural-parse-no-llm) interface is stable; a JS/TS adapter is the most-requested addition.
-- **Python and Go heuristic extractors.** Same interface, different manifest parsers.
+- **JS/TS heuristic extractor.** Optional accelerator — the generic fallback already distills JS/TS via delegation; a specific extractor improves the structural summary and sync fidelity. Python and Go likewise.
 - **Public canonical hub.** Pack format is publishable today (deterministic IDs, attribution required, no machine-specific paths). The remote sharing system itself needs a separate design doc covering hosting, trust, signing, and discovery.
 
 ## Post-3.x

@@ -2,7 +2,7 @@
 
 This document ties together **how to extract domain knowledge**, **how to turn it into work**, and **what to simplify or strengthen next** so agents and humans can repeat the loop reliably—especially on **large codebases** (many small packs, not one giant blob).
 
-See also: [`ae_know_design.md`](ae_know_design.md) (pipeline architecture), [`ae_e2e_log.md`](ae_e2e_log.md) (local E2E + schema glossary + Rust contract policy), [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md) (brief migration history), root [`justfile`](../justfile).
+See also: [`ae_know_design.md`](../ae_know_design.md) (pipeline architecture), [`e2e/ae_e2e_log.md`](e2e/ae_e2e_log.md) (local E2E + schema glossary + Rust contract policy), [`e2e/ae_e2e_just_migration.md`](e2e/ae_e2e_just_migration.md) (brief migration history), root [`justfile`](../justfile).
 
 ## End-to-end pipeline
 
@@ -48,40 +48,40 @@ flowchart LR
 
 ## What works well today (keep)
 
-| Practice | Why |
-|----------|-----|
-| **Shard by concern** — multiple `know build` names | Bounds token size per `know show`; clearer ownership. |
-| **Stable pack IDs** — prefix + role (`ae_docs_error_codes`) | Scriptable `--know`, predictable automation. |
-| **`--path` for local files** | No fake `file://` quirks; explicit and fast. |
-| **`matrix scaffold` → `docs/feature_matrix.yaml`** | Repo-level “where we are” without stuffing the hub. |
-| **`ae know matrix diff`** (hub vs repo file) | Structural compare when `matrix.yaml` is canonical. |
-| **`FileHubResolver` cwd walk** | `instructions` / `generate --know` work from repo root without extra flags. |
+| Practice                                                    | Why                                                                         |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Shard by concern** — multiple `know build` names          | Bounds token size per `know show`; clearer ownership.                       |
+| **Stable pack IDs** — prefix + role (`ae_docs_error_codes`) | Scriptable `--know`, predictable automation.                                |
+| **`--path` for local files**                                | No fake `file://` quirks; explicit and fast.                                |
+| **`matrix scaffold` → `docs/feature_matrix.yaml`**          | Repo-level “where we are” without stuffing the hub.                         |
+| **`ae know matrix diff`** (hub vs repo file)                | Structural compare when `matrix.yaml` is canonical.                         |
+| **`FileHubResolver` cwd walk**                              | `instructions` / `generate --know` work from repo root without extra flags. |
 
 ## What to simplify or remove (reduce friction)
 
-| Area | Current pain | Direction |
-|------|----------------|-----------|
-| **Multiple CLI invocations** | One `know build` per file in scripts | **Single manifest** (YAML list of path → pack name) consumed by a thin script or future `ae know build --manifest`. |
-| **Single `--know`** | Large tasks need several packs; users rerun commands | **`--know` bundle** (ordered list), or **`defaults.know_packs`** in `hub.yaml`. |
-| **Plan export** | Shell + `python3` to peel `plan_markdown` | **First-class** `ae know plan --out file.md` (or JSON field only in stdout). |
-| **Noise in git** | Hub + scaffold files | **Already gitignored** for `.ae_hub/`, generated matrix, Rust `spec/` exports; use `just e2e-reset` between experiments. |
+| Area                         | Current pain                                         | Direction                                                                                                                |
+| ---------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Multiple CLI invocations** | One `know build` per file in scripts                 | **Single manifest** (YAML list of path → pack name) consumed by a thin script or future `ae know build --manifest`.      |
+| **Single `--know`**          | Large tasks need several packs; users rerun commands | **`--know` bundle** (ordered list), or **`defaults.know_packs`** in `hub.yaml`.                                          |
+| **Plan export**              | Shell + `python3` to peel `plan_markdown`            | **First-class** `ae know plan --out file.md` (or JSON field only in stdout).                                             |
+| **Noise in git**             | Hub + scaffold files                                 | **Already gitignored** for `.ae_hub/`, generated matrix, Rust `spec/` exports; use `just e2e-reset` between experiments. |
 
 ## What to add or make “more complex” (on purpose)
 
 These add structure up front so **implementation and review** get easier—not harder.
 
-| Addition | Payoff |
-|----------|--------|
-| **Normative pointer** in pack metadata (`meta.yaml` / plan section) | Separates “what the standard says” from “what we implemented.” |
-| **Feature IDs** in `matrix.yaml` (stable slugs) | Deterministic diffs and CI gates (`matrix diff` / future `proof` column). |
-| **Proof column** (tests, fixtures, links) | Honest **partial** / **yes** states; reduces hand-wavy rows. |
-| **TOC pack** — one tiny pack listing other pack names + one-line roles | Navigation without duplicating full text. |
-| **MCP: one call, N packs** | Fewer round trips for IDE agents (product shape TBD). |
+| Addition                                                               | Payoff                                                                    |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Normative pointer** in pack metadata (`meta.yaml` / plan section)    | Separates “what the standard says” from “what we implemented.”            |
+| **Feature IDs** in `matrix.yaml` (stable slugs)                        | Deterministic diffs and CI gates (`matrix diff` / future `proof` column). |
+| **Proof column** (tests, fixtures, links)                              | Honest **partial** / **yes** states; reduces hand-wavy rows.              |
+| **TOC pack** — one tiny pack listing other pack names + one-line roles | Navigation without duplicating full text.                                 |
+| **MCP: one call, N packs**                                             | Fewer round trips for IDE agents (product shape TBD).                     |
 
 ## Repo vs hub matrix
 
 - **Hub template** (`ae know matrix init` on a pack): canonical **column schema** + **feature IDs**; good for copying into new projects.
-- **Repo artifact** (`ae know matrix scaffold`): **implementation status** for *this* repository; should stay in git next to code if the team tracks coverage there.
+- **Repo artifact** (`ae know matrix scaffold`): **implementation status** for _this_ repository; should stay in git next to code if the team tracks coverage there.
 
 **Rule of thumb:** treat **`matrix.yaml` as source of truth** for machine diff; treat **markdown matrix** as a human view (generate or validate from YAML).
 

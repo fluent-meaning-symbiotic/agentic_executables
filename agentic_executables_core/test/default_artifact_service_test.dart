@@ -76,6 +76,7 @@ CanonicalPack _canonicalWithFeatures(
 }
 
 void main() {
+  _evidenceGroup();
   group('DefaultArtifactService', () {
     late Directory tempHub;
     late FileArtifactStore artStore;
@@ -122,10 +123,16 @@ void main() {
       expect(await svc.list(), contains('ecsly'));
     });
 
-    test('ingest of non-handled directory throws', () async {
+    test('ingest of non-handled directory uses the generic extractor',
+        () async {
       final tmp = await Directory.systemTemp.createTemp('not_handled_');
       try {
-        expect(() => svc.ingest(tmp), throwsArgumentError);
+        File('${tmp.path}/README.md')
+            .writeAsStringSync('# Unknown Lang Project\n');
+        final packName = await svc.ingest(tmp);
+        final pack = await artStore.load(packName);
+        expect(pack, isNotNull);
+        expect(pack!.meta.extractor, 'generic_v1');
       } finally {
         await tmp.delete(recursive: true);
       }
@@ -312,6 +319,152 @@ void main() {
       } finally {
         if (await realSrc.exists()) await realSrc.delete(recursive: true);
       }
+    });
+  });
+}
+
+// ---- Evidence enforcement (mark-evidence / verify --run-tests) ----
+
+class RecordingRunner implements ProcessRunner {
+  final executedCommands = <String>[];
+
+  @override
+  Future<ProcessRunResult> run({
+    required final String executable,
+    required final List<String> arguments,
+    final String? stdinInput,
+    final Map<String, String>? environment,
+    final String? workingDirectory,
+    final Duration? timeout,
+  }) async {
+    executedCommands.add(arguments.last);
+    return const ProcessRunResult(exitCode: 0, stdout: '', stderr: '');
+  }
+}
+
+class _FakeRunner implements ProcessRunner {
+  final Map<String, int> exitCodes;
+  _FakeRunner(this.exitCodes);
+
+  @override
+  Future<ProcessRunResult> run({
+    required final String executable,
+    required final List<String> arguments,
+    final String? stdinInput,
+    final Map<String, String>? environment,
+    final String? workingDirectory,
+    final Duration? timeout,
+  }) async {
+    final cmd = arguments.last;
+    return ProcessRunResult(
+      exitCode: exitCodes[cmd] ?? 0,
+      stdout: '',
+      stderr: '',
+    );
+  }
+}
+
+void _evidenceGroup() {
+  group('DefaultArtifactService evidence', () {
+    late Directory tempHub;
+    late FileArtifactStore artStore;
+    late FileCanonicalStore canStore;
+
+    setUp(() async {
+      tempHub = await Directory.systemTemp.createTemp('ae_evidence_');
+      artStore = FileArtifactStore(tempHub.path);
+      canStore = FileCanonicalStore(tempHub.path);
+    });
+
+    tearDown(() => tempHub.delete(recursive: true));
+
+    Future<DefaultArtifactService> makeSvc({ProcessRunner? runner}) async {
+      await canStore.save(
+        'ecs',
+        _canonicalWithFeatures('ecs', ['entity.create']),
+      );
+      final pack = _samplePack(references: [CanonicalReference.parse('ecs')]);
+      // Materialized row for entity.create with the linked canonical.
+      final withRow = ArtifactPack(
+        name: pack.name,
+        meta: pack.meta,
+        indexContent: pack.indexContent,
+        matrix: ArtifactMatrix(
+          columnSchema: const [],
+          features: [
+            ArtifactFeatureRow(
+              id: FeatureId.parse('entity.create'),
+              canonical: 'ecs',
+              cell: const ArtifactCell(impl: ImplStatus.missing),
+            ),
+          ],
+        ),
+      );
+      await artStore.save(withRow);
+      return DefaultArtifactService(
+        artifactStore: artStore,
+        canonicalStore: canStore,
+        extractorRegistry: HeuristicExtractorRegistry(const []),
+        processRunner: runner,
+      );
+    }
+
+    test('markEvidence records provenance and promotes missing impl', () async {
+      final svc = await makeSvc();
+      final result = await svc.markEvidence(
+        'dart_ecs',
+        'entity.create',
+        testCommand: 'dart test test/entity_test.dart',
+        location: 'test/entity_test.dart',
+      );
+      expect(result.cell.tests, TestStatus.yes);
+      expect(result.cell.evidenceCommand, 'dart test test/entity_test.dart');
+      expect(result.cell.impl, ImplStatus.done);
+      expect(result.cell.location, 'test/entity_test.dart');
+
+      final loaded = await artStore.load('dart_ecs');
+      expect(
+        loaded!.matrix.features.single.cell.evidenceCommand,
+        'dart test test/entity_test.dart',
+      );
+    });
+
+    test('verify trusts recorded cells without --run-tests', () async {
+      final runner = RecordingRunner();
+      final svc = await makeSvc(runner: runner);
+      await svc.markEvidence(
+        'dart_ecs',
+        'entity.create',
+        testCommand: 'exit 1', // would fail if executed
+      );
+      final report = await svc.verifyOne('dart_ecs');
+      expect(
+          report.entries.where((e) => e.tier == VerifyTier.invariantViolation),
+          isEmpty);
+      expect(runner.executedCommands, isEmpty);
+    });
+
+    test('--run-tests passes a green command (no Tier 1)', () async {
+      final svc = await makeSvc(runner: _FakeRunner({'exit 0': 0}));
+      await svc.markEvidence('dart_ecs', 'entity.create',
+          testCommand: 'exit 0');
+      final report = await svc.verifyOne('dart_ecs', runTests: true);
+      expect(
+          report.entries.where((e) => e.tier == VerifyTier.invariantViolation),
+          isEmpty);
+    });
+
+    test('--run-tests catches a lying cell as Tier 1', () async {
+      final svc = await makeSvc(runner: _FakeRunner({'exit 3': 3}));
+      await svc.markEvidence('dart_ecs', 'entity.create',
+          testCommand: 'exit 3');
+      final report = await svc.verifyOne('dart_ecs', runTests: true);
+      final tier1 = report.entries
+          .where((e) => e.tier == VerifyTier.invariantViolation)
+          .toList();
+      expect(tier1, hasLength(1));
+      expect(
+          tier1.single.message, contains("evidence failed: 'exit 3' exited 3"));
     });
   });
 }

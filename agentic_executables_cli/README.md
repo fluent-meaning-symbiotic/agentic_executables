@@ -24,7 +24,7 @@ From the monorepo root (requires [Just](https://github.com/casey/just)): hub res
 just e2e
 ```
 
-See **`docs/ae_e2e_log.md`** (authoritative). `docs/ae_e2e_just_migration.md` is a short migration note only. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
+See **`docs/e2e/ae_e2e_log.md`** (authoritative). `docs/e2e/ae_e2e_just_migration.md` is a short migration note only. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
 
 For the **extract → implement** loop and improvement backlog, see `docs/ae_know_extract_implement.md`.
 
@@ -79,12 +79,12 @@ Use contextual help: `ae <subcommand> --help`
 
 Flags for `generate` and `registry get --out`:
 
-| Flag | Behavior |
-|------|----------|
-| `--check` | Detect changes without writing |
-| `--diff` | Include unified diff metadata |
-| `--backup` | Timestamped backup before overwrite |
-| `--no-overwrite` | Block overwrite of existing files |
+| Flag             | Behavior                            |
+| ---------------- | ----------------------------------- |
+| `--check`        | Detect changes without writing      |
+| `--diff`         | Include unified diff metadata       |
+| `--backup`       | Timestamped backup before overwrite |
+| `--no-overwrite` | Block overwrite of existing files   |
 
 Per-file statuses are deterministic: `added`, `updated`, `unchanged`, `blocked`.
 

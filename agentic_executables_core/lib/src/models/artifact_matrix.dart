@@ -79,6 +79,7 @@ class ArtifactCell {
     this.location,
     this.tests,
     this.notes,
+    this.evidenceCommand,
   });
 
   final ImplStatus impl;
@@ -87,12 +88,18 @@ class ArtifactCell {
   final TestStatus? tests;
   final String? notes;
 
+  /// Command that, when run, produces the recorded test evidence. Written by
+  /// `ae artifact mark-evidence`; executed (not trusted) by
+  /// `ae artifact verify --run-tests`. Empty on legacy rows.
+  final String? evidenceCommand;
+
   Map<String, dynamic> toJson() => {
         'impl': impl.value,
         if (algorithm != null) 'algorithm': algorithm,
         if (location != null) 'location': location,
         if (tests != null) 'tests': tests!.value,
         if (notes != null) 'notes': notes,
+        if (evidenceCommand != null) 'evidence_command': evidenceCommand,
       };
 
   factory ArtifactCell.fromMap(final Map<dynamic, dynamic> map) => ArtifactCell(
@@ -103,6 +110,7 @@ class ArtifactCell {
             ? TestStatus.fromString(map['tests'].toString())
             : null,
         notes: map['notes']?.toString(),
+        evidenceCommand: map['evidence_command']?.toString(),
       );
 }
 
@@ -181,6 +189,9 @@ class ArtifactMatrix {
       }
       if (f.cell.notes != null) {
         buffer.writeln('    notes: ${_y(f.cell.notes!)}');
+      }
+      if (f.cell.evidenceCommand != null) {
+        buffer.writeln('    evidence_command: ${_y(f.cell.evidenceCommand!)}');
       }
     }
     return buffer.toString();

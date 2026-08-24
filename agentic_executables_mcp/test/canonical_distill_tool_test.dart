@@ -5,22 +5,13 @@ import 'package:agentic_executables_mcp/src/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-class _FakeFixedExecutor implements DistillationExecutor {
-  _FakeFixedExecutor(this._output);
-  final DistillationOutput _output;
-
-  @override
-  String get executorId => 'fake';
-
-  @override
-  Future<bool> canRun() async => true;
-
-  @override
-  Future<DistillationOutput> execute(final DistillationTask task) async =>
-      _output;
-}
-
-DistillationOutput _cannedOutput(final String concept) => DistillationOutput(
+Map<String, dynamic> _draft({
+  required final String concept,
+  final List<CanonicalFeature> features = const [],
+  final List<ProposedConcept> proposals = const [],
+  final String? schemaOverride,
+}) =>
+    DistillationOutput(
       conceptId: concept,
       conceptVersion: 1,
       indexMd: '# $concept (distilled)\n',
@@ -30,18 +21,10 @@ DistillationOutput _cannedOutput(final String concept) => DistillationOutput(
         columnSchema: const [
           CanonicalColumn(id: 'spec', type: 'text'),
         ],
-        features: [
-          CanonicalFeature(
-            id: FeatureId.parse('entity.create'),
-            cells: const {'spec': 'Make a new entity.'},
-          ),
-          CanonicalFeature(
-            id: FeatureId.parse('entity.destroy'),
-            cells: const {'spec': 'Destroy an entity.'},
-          ),
-        ],
+        features: features,
       ),
-    );
+      proposedConcepts: proposals,
+    ).toJson()..['schema'] = schemaOverride ?? 'ae.canonical.draft.v1';
 
 Future<void> _writeArtifactPack(final String hubPath) async {
   final meta = ArtifactMeta(
@@ -74,8 +57,8 @@ Future<void> _writeCanonicalSeed(final String hubPath) async {
   final store = FileCanonicalStore(hubPath);
   final svc = DefaultCanonicalService(store: store);
   await svc.scaffold('ecs', title: 'ECS');
-  // Seed the matrix with the ids that the test fixtures distill, so
-  // the id-stability validator (mergeDistillationDetailed) accepts the run.
+  // Seed the matrix with the ids the agent's draft will enrich, so
+  // the id-stability validator (mergeDistillationDetailed) accepts it.
   final seeded = await svc.load('ecs');
   await svc.upsert(
     'ecs',
@@ -103,7 +86,7 @@ Future<void> _writeCanonicalSeed(final String hubPath) async {
 }
 
 void main() {
-  group('AeMcpAdapter.canonical (distill)', () {
+  group('AeMcpAdapter.canonical (distill delegation)', () {
     late Directory tempProject;
     late String hubPath;
 
@@ -117,18 +100,11 @@ void main() {
       await _writeCanonicalSeed(hubPath);
     });
 
-    tearDown(() async {
-      await tempProject.delete(recursive: true);
-    });
+    tearDown(() async => tempProject.delete(recursive: true));
 
-    test('distill happy path: merges output into canonical', () async {
-      final svc = DefaultDistillationService(
-        executors: [_FakeFixedExecutor(_cannedOutput('ecs'))],
-      );
-      final adapter = AeMcpAdapter(
-        resourcesPath: '/tmp/nonexistent',
-        distillationServiceOverride: svc,
-      );
+    test('emit phase returns delegation instructions, never runs a model',
+        () async {
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
       final result = await adapter.canonical({
         'operation': 'distill',
         'pack': 'dart_ecs',
@@ -138,18 +114,16 @@ void main() {
 
       expect(result['success'], isTrue, reason: 'result: $result');
       final data = result['data'] as Map<String, dynamic>;
+      expect(data['mode'], 'delegate');
       expect(data['concept'], 'ecs');
-      expect(data['feature_count'], 2);
-      expect(data['mode'], 'upsert');
-      expect(data['executor_used'], 'fake');
-
-      final store = FileCanonicalStore(hubPath);
-      final loaded = await store.load('ecs');
-      expect(loaded, isNotNull);
-      expect(loaded!.matrix.features.length, 2);
+      expect(data['seed_rows'], 2);
+      final instructions = data['instructions'] as String;
+      expect(instructions, contains('ID STABILITY RULES'));
+      expect(instructions, contains('ae.distillation.task.v1'));
+      expect(data['next'], contains('distill-merge'));
     });
 
-    test('distill fails with validation_error when pack missing', () async {
+    test('emit fails with validation_error when pack missing', () async {
       final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
       final result = await adapter.canonical({
         'operation': 'distill',
@@ -160,14 +134,8 @@ void main() {
       expect((result['error'] as Map)['code'], 'validation_error');
     });
 
-    test('distill fails with artifact_not_found when pack unknown', () async {
-      final svc = DefaultDistillationService(
-        executors: [_FakeFixedExecutor(_cannedOutput('ecs'))],
-      );
-      final adapter = AeMcpAdapter(
-        resourcesPath: '/tmp/nonexistent',
-        distillationServiceOverride: svc,
-      );
+    test('emit fails with artifact_not_found when pack unknown', () async {
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
       final result = await adapter.canonical({
         'operation': 'distill',
         'pack': 'missing_pack',
@@ -178,97 +146,114 @@ void main() {
       expect((result['error'] as Map)['code'], 'artifact_not_found');
     });
 
-    test('canonical distill envelope includes proposed_concepts when set',
-        () async {
-      // Construct an output with one ProposedConcept on top of the seeded
-      // ids — the seeded matrix has entity.create + entity.destroy, so the
-      // validator accepts the entity.create row in the distill output.
-      final output = DistillationOutput(
-        conceptId: 'ecs',
-        conceptVersion: 1,
-        indexMd: '# ecs\n',
-        matrix: CanonicalMatrix(
+    test('merge phase merges a returned draft into the canonical', () async {
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
+      final result = await adapter.canonical({
+        'operation': 'distill-merge',
+        'concept': 'ecs',
+        'root': tempProject.path,
+        'output': _draft(
           concept: 'ecs',
-          version: 1,
-          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
           features: [
             CanonicalFeature(
               id: FeatureId.parse('entity.create'),
-              cells: const {'spec': 'enriched'},
+              cells: {'spec': 'enriched'},
             ),
           ],
         ),
-        proposedConcepts: const [
-          ProposedConcept(
-            name: 'envelope-shape',
-            spec: 'every command writes JSON',
-            invariant: 'success is bool',
-            rationale: 'cross-cutting',
-          ),
-        ],
-      );
-      final svc = DefaultDistillationService(
-        executors: [_FakeFixedExecutor(output)],
-      );
-      final adapter = AeMcpAdapter(
-        resourcesPath: '/tmp/nonexistent',
-        distillationServiceOverride: svc,
-      );
-      final result = await adapter.canonical({
-        'operation': 'distill',
-        'pack': 'dart_ecs',
-        'concept': 'ecs',
-        'root': tempProject.path,
       });
 
       expect(result['success'], isTrue, reason: 'result: $result');
       final data = result['data'] as Map<String, dynamic>;
-      expect(data['proposed_concepts'], isA<List<dynamic>>());
-      expect(data['proposed_concepts'] as List, hasLength(1));
-      expect(
-        ((data['proposed_concepts'] as List).single as Map)['name'],
-        'envelope-shape',
-      );
+      expect(data['merged'], isTrue);
+      expect(data['executor_used'], 'host_agent');
+      expect(data['feature_count_after_merge'], 2);
+
+      final loaded = await FileCanonicalStore(hubPath).load('ecs');
+      final row = loaded!.matrix.features
+          .firstWhere((final f) => f.id.toString() == 'entity.create');
+      expect(row.cells['spec'], 'enriched');
     });
 
-    test(
-        'canonical distill returns id_not_in_matrix error when distill emits unknown ids',
+    test('merge passes through proposed_concepts and persists them',
         () async {
-      // Distill output emits an id NOT in the seeded matrix.
-      final output = DistillationOutput(
-        conceptId: 'ecs',
-        conceptVersion: 1,
-        indexMd: '',
-        matrix: CanonicalMatrix(
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
+      final result = await adapter.canonical({
+        'operation': 'distill-merge',
+        'concept': 'ecs',
+        'root': tempProject.path,
+        'output': _draft(
           concept: 'ecs',
-          version: 1,
-          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
           features: [
             CanonicalFeature(
-              id: FeatureId.parse('entity.invented'),
-              cells: const {'spec': 'unauthorized'},
+              id: FeatureId.parse('entity.create'),
+              cells: {'spec': 'enriched'},
+            ),
+          ],
+          proposals: const [
+            ProposedConcept(
+              name: 'envelope-shape',
+              spec: 'every command writes JSON',
+              invariant: 'success is bool',
+              rationale: 'cross-cutting',
             ),
           ],
         ),
-      );
-      final svc = DefaultDistillationService(
-        executors: [_FakeFixedExecutor(output)],
-      );
-      final adapter = AeMcpAdapter(
-        resourcesPath: '/tmp/nonexistent',
-        distillationServiceOverride: svc,
-      );
-      final result = await adapter.canonical({
-        'operation': 'distill',
-        'pack': 'dart_ecs',
-        'concept': 'ecs',
-        'root': tempProject.path,
       });
 
-      expect(result['success'], isFalse, reason: 'result: $result');
-      expect(result['error'], isNotNull);
-      final error = result['error'] as Map<String, dynamic>;
-      expect(error['code'], 'id_not_in_matrix');
+      expect(result['success'], isTrue, reason: 'result: $result');
+      final data = result['data'] as Map<String, dynamic>;
+      expect((data['proposed_concepts'] as List), hasLength(1));
+      expect(
+        File(p.join(hubPath, 'canonical', 'ecs', '.last_proposals.json'))
+            .existsSync(),
+        isTrue,
+      );
+    });
+
+    test('merge rejects ids not in the seed matrix (id-stability)',
+        () async {
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
+      final result = await adapter.canonical({
+        'operation': 'distill-merge',
+        'concept': 'ecs',
+        'root': tempProject.path,
+        'output': _draft(
+          concept: 'ecs',
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('entity.invent'),
+              cells: {'spec': 'invented id'},
+            ),
+          ],
+        ),
+      });
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'id_not_in_matrix');
+    });
+
+    test('merge rejects wrong schema', () async {
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
+      final result = await adapter.canonical({
+        'operation': 'distill-merge',
+        'concept': 'ecs',
+        'root': tempProject.path,
+        'output': _draft(concept: 'ecs', schemaOverride: 'some.other.schema'),
+      });
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'draft_schema_mismatch');
+    });
+
+    test('merge rejects concept mismatch', () async {
+      final adapter = AeMcpAdapter(resourcesPath: '/tmp/nonexistent');
+      final result = await adapter.canonical({
+        'operation': 'distill-merge',
+        'concept': 'ecs',
+        'root': tempProject.path,
+        'output': _draft(concept: 'other_concept'),
+      });
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'draft_concept_mismatch');
     });
   });
 }

@@ -60,52 +60,28 @@ class DoctorOutput {
 }
 
 /// Preflight doctor: runs `ae doctor`-style sanity checks against the local
-/// environment (codex binary, Dart SDK, skill target writability, registry
-/// reachability). Pure, side-effect-free except for the temp-file write probe
+/// environment (Dart SDK, skill target writability, registry reachability).
+/// AE never calls models, so there is nothing model-related to probe.
+/// Pure, side-effect-free except for the temp-file write probe
 /// scoped to [skillTarget] and a short HTTP HEAD-equivalent GET against the
 /// registry probe URL.
 class AeDoctor {
   AeDoctor({
-    this.codexBinary = 'codex',
     this.environment,
     this.registryProbeUrl,
   });
 
-  final String codexBinary;
   final Map<String, String>? environment;
   final String? registryProbeUrl;
 
   Future<DoctorOutput> run({required final String skillTarget}) async {
     final checks = <DoctorCheck>[
-      _checkCodex(),
       await _checkDartSdk(),
       await _checkSkillTarget(skillTarget),
       await _checkRegistryReachability(),
     ];
 
     return DoctorOutput(checks: checks);
-  }
-
-  DoctorCheck _checkCodex() {
-    if (_resolveBinaryPath(codexBinary) != null) {
-      return const DoctorCheck(
-        id: 'codex_available',
-        label: 'Codex binary',
-        status: DoctorStatus.ok,
-        critical: false,
-        diagnostic: 'codex binary is available',
-        fixCommand: 'codex --help',
-      );
-    }
-
-    return const DoctorCheck(
-      id: 'codex_available',
-      label: 'Codex binary',
-      status: DoctorStatus.warn,
-      critical: false,
-      diagnostic: 'codex binary was not found in PATH',
-      fixCommand: 'Install Codex CLI or pass --engine template for generation',
-    );
   }
 
   Future<DoctorCheck> _checkDartSdk() async {

@@ -1,10 +1,11 @@
-/// Shared prompt header for AE distillation tasks. Caller appends the
-/// task JSON inside a fenced ```json ... ``` block.
-///
-/// All three distillation executors (claude_code, byok_llm, codex_exec)
-/// MUST use this constant so the LLM gets identical id-stability rules
-/// regardless of which backend dispatches the task. See
-/// docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md Q7.
+import 'dart:convert';
+
+import '../models/distillation_task.dart';
+
+/// Shared prompt header for AE distillation tasks. AE never calls a model:
+/// this text is EMITTED as delegation instructions to the host agent
+/// (Claude Code, pi, Codex CLI, Cursor…), which performs the work and
+/// returns an `ae.canonical.draft.v1` JSON for AE to validate and merge.
 const String distillPromptHeader = '''
 You are running an AE distillation task. Return ONLY a JSON object that matches schema_out (`ae.canonical.draft.v1`). Do not wrap in prose; if you must, place the JSON in a single ```json fenced code block. No commentary outside the JSON.
 
@@ -41,3 +42,10 @@ Response shape (return EXACTLY this structure, schema strings are literal):
 
 The `schema`, `concept_id`, `concept_version`, `index_md`, and `matrix` keys are REQUIRED on every response — the `matrix` key must always be present even if its `features` array is empty (do NOT omit `matrix` entirely). The `column_schema` and `features` arrays may be empty (`[]`). The `proposed_concepts` key is optional and may be omitted entirely when there are no proposals.
 ''';
+
+/// Full delegation instructions: prompt header + the task JSON block.
+/// AE emits this to the host agent; AE itself never calls a model.
+String buildDistillInstructions(final DistillationTask task) {
+  final taskJson = const JsonEncoder.withIndent('  ').convert(task.toJson());
+  return '$distillPromptHeader\n```json\n$taskJson\n```\n';
+}

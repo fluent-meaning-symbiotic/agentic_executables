@@ -7,7 +7,6 @@ import 'package:path/path.dart' as path;
 class AeMcpAdapter {
   AeMcpAdapter({
     required final String resourcesPath,
-    this.distillationServiceOverride,
   })  : _registryClient = GitHubRawRegistryClient(),
         _definitionService = const DefaultAeDefinitionService(),
         _instructionService =
@@ -32,10 +31,6 @@ class AeMcpAdapter {
   final AeGenerationService _generationService;
   final FileHubResolver _hubResolver;
   late final AeHubService _hubService;
-
-  /// Test seam: when non-null, `ae_canonical` operation `distill`
-  /// uses this service instead of building one from the hub config.
-  final DistillationService? distillationServiceOverride;
 
   Future<Map<String, dynamic>> definition(
     final Map<String, dynamic> params,
@@ -426,14 +421,17 @@ class AeMcpAdapter {
       final base = path.basename(entity.path);
       if (base.startsWith('.')) continue;
       final handler = await registry.findFor(entity);
-      if (handler != null) {
+      if (handler.languageId != 'generic') {
         final name = await svc.ingest(entity);
         ingested.add(name);
       } else {
+        // Generic fallback means findFor never returns null; a directory
+        // only worth ingesting at init time is one a specific extractor
+        // recognizes. Unknown dirs are skipped.
         skipped.add(entity.path);
       }
     }
-    if (await registry.findFor(rootDir) != null) {
+    if ((await registry.findFor(rootDir)).languageId != 'generic') {
       ingested.add(await svc.ingest(rootDir));
     }
     if (strict && skipped.isNotEmpty) {
@@ -561,7 +559,13 @@ class AeMcpAdapter {
     if (operation.isEmpty) {
       return _validationError('Parameter "operation" is required');
     }
-    const validOps = ['list', 'verify', 'link', 'upgrade-canonical'];
+    const validOps = [
+      'list',
+      'verify',
+      'link',
+      'upgrade-canonical',
+      'mark-evidence'
+    ];
     if (!validOps.contains(operation)) {
       return _validationError(
         'operation must be one of: ${validOps.join(', ')}',
@@ -597,8 +601,9 @@ class AeMcpAdapter {
         case 'verify':
           final pack = params['pack']?.toString();
           final strict = _typedBool(params, 'strict', defaultValue: false);
+          final runTests = _typedBool(params, 'run_tests', defaultValue: false);
           if (pack == null) return _validationError('Missing "pack"');
-          final report = await svc.verifyOne(pack);
+          final report = await svc.verifyOne(pack, runTests: runTests);
           if (strict && report.hasBlockingTiers) {
             return {
               'success': false,
@@ -610,6 +615,47 @@ class AeMcpAdapter {
             };
           }
           return {'success': true, 'data': report.toJson()};
+
+        case 'mark-evidence':
+          final pack = params['pack']?.toString();
+          final feature = params['feature_id']?.toString();
+          final testCommand = params['test_command']?.toString();
+          if (pack == null) return _validationError('Missing "pack"');
+          if (feature == null) return _validationError('Missing "feature_id"');
+          if (testCommand == null) {
+            return _validationError('Missing "test_command"');
+          }
+          try {
+            final result = await svc.markEvidence(
+              pack,
+              feature,
+              testCommand: testCommand,
+              location: params['location']?.toString(),
+              notes: params['notes']?.toString(),
+              impl: ImplStatus.fromString(
+                params['impl'] == null ? 'done' : params['impl'].toString(),
+              ),
+            );
+            return {
+              'success': true,
+              'data': {
+                'pack': result.pack,
+                'feature_id': result.featureId,
+                'cell': result.cell.toJson(),
+              },
+            };
+          } on ArgumentError catch (e) {
+            final msg = e.message?.toString() ?? e.toString();
+            return {
+              'success': false,
+              'error': {
+                'code': msg.contains('not found in pack')
+                    ? 'feature_not_found'
+                    : 'artifact_not_found',
+                'message': msg,
+              },
+            };
+          }
 
         case 'link':
           final pack = params['pack']?.toString();
@@ -668,6 +714,7 @@ class AeMcpAdapter {
       'diff',
       'import',
       'distill',
+      'distill-merge',
       'accept-concept',
     ];
     if (!validOps.contains(operation)) {
@@ -889,6 +936,7 @@ class AeMcpAdapter {
           };
 
         case 'distill':
+        case 'distill-merge':
           return await _canonicalDistill(
             params: params,
             hubPath: hubPath,
@@ -958,15 +1006,115 @@ class AeMcpAdapter {
     required final String hubPath,
     required final DefaultCanonicalService canonicalService,
   }) async {
-    final pack = params['pack']?.toString();
     final concept = params['concept']?.toString();
-    final mode = params['mode']?.toString() ?? 'upsert';
-    if (pack == null || pack.isEmpty) {
-      return _validationError('Missing "pack"');
-    }
     if (concept == null || concept.isEmpty) {
       return _validationError('Missing "concept"');
     }
+    final mergeMode =
+        (params['operation']?.toString() ?? '') == 'distill-merge';
+
+    // ---- Phase 2: merge a returned draft (host agent did the model work).
+    if (mergeMode) {
+      final rawOutput = params['output'];
+      if (rawOutput == null) {
+        return _validationError(
+          'Missing "output" (the ae.canonical.draft.v1 JSON from the agent)',
+        );
+      }
+      final Map<String, dynamic> decoded;
+      if (rawOutput is Map) {
+        decoded = rawOutput.map(
+          (final k, final v) => MapEntry(k.toString(), v),
+        );
+      } else {
+        try {
+          decoded = jsonDecode(rawOutput.toString()) as Map<String, dynamic>;
+        } on FormatException catch (e) {
+          return {
+            'success': false,
+            'error': {
+              'code': 'draft_parse_failed',
+              'message': 'Draft output is not valid JSON: ${e.message}',
+            },
+          };
+        }
+      }
+      if (decoded['schema']?.toString() != 'ae.canonical.draft.v1') {
+        return {
+          'success': false,
+          'error': {
+            'code': 'draft_schema_mismatch',
+            'message': 'Expected schema "ae.canonical.draft.v1", got '
+                '"${decoded['schema']}"',
+          },
+        };
+      }
+
+      final DistillationOutput output;
+      try {
+        output = DistillationOutput.fromMap(decoded);
+      } catch (e) {
+        return {
+          'success': false,
+          'error': {
+            'code': 'draft_invalid',
+            'message': 'Draft output failed validation: \$e',
+          },
+        };
+      }
+      if (output.conceptId != concept) {
+        return {
+          'success': false,
+          'error': {
+            'code': 'draft_concept_mismatch',
+            'message':
+                'Draft is for concept "${output.conceptId}", expected "\$concept"',
+          },
+        };
+      }
+
+      try {
+        final mergeReport = await canonicalService.mergeDistillationDetailed(
+          concept,
+          output,
+        );
+        await canonicalService.writeProposalsFile(
+          concept,
+          proposals: mergeReport.proposedConcepts,
+          executorUsed: 'host_agent',
+        );
+        final merged = mergeReport.pack;
+        return {
+          'success': true,
+          'data': {
+            'merged': true,
+            'concept': concept,
+            'version': merged.meta.version,
+            'feature_count': mergeReport.featureCountAfterMerge,
+            'feature_count_received': mergeReport.featureCountReceived,
+            'feature_count_after_merge': mergeReport.featureCountAfterMerge,
+            'executor_used': 'host_agent',
+            if (mergeReport.proposedConcepts.isNotEmpty)
+              'proposed_concepts': mergeReport.proposedConcepts
+                  .map((final c) => c.toJson())
+                  .toList(growable: false),
+          },
+          'warnings': mergeReport.warnings,
+        };
+      } on IdNotInMatrixException catch (e) {
+        return {
+          'success': false,
+          'error': {'code': 'id_not_in_matrix', 'message': e.toString()},
+        };
+      }
+    }
+
+    // ---- Phase 1: emit delegation instructions (AE never calls a model).
+    final pack = params['pack']?.toString();
+    if (pack == null || pack.isEmpty) {
+      return _validationError('Missing "pack"');
+    }
+    final mode = params['mode']?.toString() ?? 'upsert';
     if (mode != 'upsert' && mode != 'refine') {
       return _validationError('"mode" must be "upsert" or "refine"');
     }
@@ -978,92 +1126,31 @@ class AeMcpAdapter {
         'success': false,
         'error': {
           'code': 'artifact_not_found',
-          'message': 'Artifact pack not found: $pack',
+          'message': 'Artifact pack not found: \$pack',
         },
       };
     }
 
     final existing = await canonicalService.load(concept);
-    final conceptVersion = existing?.meta.version ?? 1;
-    final seed = existing != null
-        ? existing.matrix.features
-        : const <CanonicalFeature>[];
-
-    final language = artifact.meta.extractor.split('_').first;
-    final files = artifact.meta.source.files
-        .map((final f) => f.path)
-        .toList(growable: false);
-
-    final task = DistillationTask(
-      conceptId: concept,
-      conceptVersion: conceptVersion,
-      sourceArtifact: DistillationSourceArtifact(
-        name: pack,
-        language: language,
-        files: files,
-        structuralSummary: artifact.indexContent,
-      ),
-      matrixSeedRows: seed,
-    );
-
-    final hubConfig = await _hubResolver.loadConfig(hubPath);
-    final service = distillationServiceOverride ??
-        buildDistillationService(config: hubConfig);
-
-    final DistillationResult result;
-    try {
-      result = await service.distill(task);
-    } on DistillationServiceFailure catch (e) {
-      return {
-        'success': false,
-        'error': {
-          'code': 'distillation_failed',
-          'message': e.message,
-        },
-      };
-    }
-
-    final CanonicalMergeResult mergeReport;
-    try {
-      mergeReport = await canonicalService.mergeDistillationDetailed(
-        concept,
-        result.output,
-      );
-    } on IdNotInMatrixException catch (e) {
-      return {
-        'success': false,
-        'error': {
-          'code': 'id_not_in_matrix',
-          'message': e.toString(),
-        },
-      };
-    }
-    final merged = mergeReport.pack;
-
-    // Persist proposals so `ae canonical accept-concept` can look them up.
-    // Cleared automatically when the next distill produces zero proposals.
-    await canonicalService.writeProposalsFile(
-      concept,
-      proposals: mergeReport.proposedConcepts,
-      executorUsed: result.executorId,
+    final emission = const DefaultDistillDelegationService().buildEmission(
+      pack: pack,
+      concept: concept,
+      artifact: artifact,
+      existingCanonical: existing,
     );
 
     return {
       'success': true,
       'data': {
+        'mode': 'delegate',
         'concept': concept,
-        'version': merged.meta.version,
-        'feature_count': mergeReport.featureCountAfterMerge,
-        'feature_count_received': mergeReport.featureCountReceived,
-        'feature_count_after_merge': mergeReport.featureCountAfterMerge,
-        'mode': mode,
-        'executor_used': result.executorId,
-        if (mergeReport.proposedConcepts.isNotEmpty)
-          'proposed_concepts': mergeReport.proposedConcepts
-              .map((final c) => c.toJson())
-              .toList(growable: false),
+        'pack': pack,
+        'seed_rows': emission.task.matrixSeedRows.length,
+        'instructions': emission.instructions,
+        'next': "Delegate these instructions to the coding agent, then call "
+            'ae_canonical with operation "distill-merge", passing the '
+            "agent's JSON response as 'output' and this 'concept'.",
       },
-      'warnings': mergeReport.warnings,
     };
   }
 

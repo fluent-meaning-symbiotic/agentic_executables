@@ -58,6 +58,8 @@ void main() {
       'en',
       // Default for `ae canonical distill --mode`
       'upsert',
+      // Default impl status for `ae artifact mark-evidence` (not an error code)
+      'done',
     });
     emittedCodes.add('doctor_checks_failed');
 

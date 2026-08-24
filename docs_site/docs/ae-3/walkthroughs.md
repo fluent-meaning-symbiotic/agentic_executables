@@ -82,7 +82,7 @@ Each canonical lists its own ~10–30 features in `matrix.yaml`. Now the artifac
 references_canonical:
   - gltf/core
   - gltf/extensions/khr_materials_clearcoat
-  - gltf/extensions/khr_lights_punctual@v1   # locked to v1 snapshot
+  - gltf/extensions/khr_lights_punctual@v1 # locked to v1 snapshot
 ```
 
 The first two are **live** references — they re-resolve against whatever `canonical/gltf/core/` currently holds at `ae sync` time. The third is **locked** — it always resolves to `canonical/gltf/extensions/khr_lights_punctual/v1/`, the frozen snapshot. Use locks when an extension you depend on is moving and you don't want to chase it. See [Hub layout](./hub-layout) for the snapshot directory shape.
@@ -103,7 +103,7 @@ created canonical/gltf/extensions/khr_gaussian_splatting/
 $ ae canonical distill --pack rust_gltf_kgs_ref \
                        --concept gltf/extensions/khr_gaussian_splatting \
                        --mode upsert
-distillation: dispatched to claude_code subagent
+distillation: emitted delegation task (ae.distillation.task.v1)
 distillation: validated against ae.canonical.draft.v1
 merged 11 features into canonical/gltf/extensions/khr_gaussian_splatting/
 ```

@@ -684,6 +684,10 @@ class DefaultCanonicalService implements CanonicalService {
       );
     }
 
+    // Validate id shape before touching proposals so malformed ids fail
+    // with a clean validation error, not a confusing proposal_not_found.
+    FeatureId.parse(newId);
+
     final dirPath = await store.conceptDirectoryPath(conceptId);
     final file = File(p.join(dirPath, '.last_proposals.json'));
     if (!await file.exists()) {

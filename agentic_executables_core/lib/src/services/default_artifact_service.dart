@@ -3,24 +3,28 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 
 import '../adapters/heuristic_extractor_registry.dart';
+import '../adapters/process_runner_io.dart';
 import '../models/artifact_matrix.dart';
 import '../models/artifact_pack.dart';
 import '../models/feature_id.dart';
 import '../models/verify_report.dart';
+import '../ports/process_runner.dart';
 import '../ports/artifact_store.dart';
 import '../ports/canonical_store.dart';
 import 'artifact_service.dart';
 
 class DefaultArtifactService implements ArtifactService {
-  const DefaultArtifactService({
+  DefaultArtifactService({
     required this.artifactStore,
     required this.canonicalStore,
     required this.extractorRegistry,
-  });
+    ProcessRunner? processRunner,
+  }) : _processRunner = processRunner ?? ProcessRunnerIo();
 
   final ArtifactStore artifactStore;
   final CanonicalStore canonicalStore;
   final HeuristicExtractorRegistry extractorRegistry;
+  final ProcessRunner _processRunner;
 
   @override
   Future<List<String>> list() => artifactStore.list();
@@ -34,11 +38,6 @@ class DefaultArtifactService implements ArtifactService {
   @override
   Future<String> ingest(final Directory sourceDir) async {
     final extractor = await extractorRegistry.findFor(sourceDir);
-    if (extractor == null) {
-      throw ArgumentError(
-        'No heuristic extractor handles ${sourceDir.path}',
-      );
-    }
     final artifact = await extractor.extract(sourceDir);
     final pack = artifact.toArtifactPack();
     await artifactStore.save(pack);
@@ -195,7 +194,10 @@ class DefaultArtifactService implements ArtifactService {
   }
 
   @override
-  Future<VerifyReport> verifyOne(final String packName) async {
+  Future<VerifyReport> verifyOne(
+    final String packName, {
+    final bool runTests = false,
+  }) async {
     final pack = await artifactStore.load(packName);
     if (pack == null) {
       throw ArgumentError('Unknown artifact: $packName');
@@ -221,13 +223,34 @@ class DefaultArtifactService implements ArtifactService {
         // Tier 1: invariant declared, no row OR row.tests != yes.
         if (invariant != null && invariant.isNotEmpty) {
           final hasYes = row != null && row.cell.tests == TestStatus.yes;
-          if (!hasYes) {
+          var verified = hasYes;
+          String? evidenceFailure;
+          if (hasYes && runTests) {
+            final cmd = row!.cell.evidenceCommand;
+            if (cmd == null || cmd.isEmpty) {
+              // Claimed without provenance: trust the cell (legacy rows).
+              verified = true;
+            } else {
+              final result = await _processRunner.run(
+                executable: 'bash',
+                arguments: ['-c', cmd],
+                workingDirectory: pack.meta.source.path,
+                timeout: const Duration(seconds: 120),
+              );
+              verified = result.exitCode == 0;
+              if (!verified) {
+                evidenceFailure =
+                    "evidence failed: '$cmd' exited ${result.exitCode}";
+              }
+            }
+          }
+          if (!verified) {
             entries.add(VerifyEntry(
               tier: VerifyTier.invariantViolation,
               artifact: pack.name,
               canonical: ref.conceptId,
               featureId: feature.id,
-              message: 'invariant unverified: $invariant',
+              message: evidenceFailure ?? 'invariant unverified: $invariant',
             ));
             continue;
           }
@@ -259,6 +282,63 @@ class DefaultArtifactService implements ArtifactService {
     }
 
     return VerifyReport(entries: entries);
+  }
+
+  @override
+  Future<MarkEvidenceResult> markEvidence(
+    final String packName,
+    final String featureId, {
+    required final String testCommand,
+    final String? location,
+    final String? notes,
+    final TestStatus tests = TestStatus.yes,
+    final ImplStatus impl = ImplStatus.done,
+  }) async {
+    final pack = await artifactStore.load(packName);
+    if (pack == null) {
+      throw ArgumentError('Unknown artifact: $packName');
+    }
+    FeatureId.parse(featureId); // validate shape early
+    final index = pack.matrix.features
+        .indexWhere((final r) => r.id.toString() == featureId);
+    if (index == -1) {
+      throw ArgumentError('Feature $featureId not found in pack $packName. '
+          'Link a canonical containing it first (ae artifact link).');
+    }
+
+    final old = pack.matrix.features[index].cell;
+    final updated = ArtifactCell(
+      impl: old.impl == ImplStatus.missing ? impl : old.impl,
+      algorithm: old.algorithm,
+      location: location ?? old.location,
+      tests: tests,
+      notes: notes ?? old.notes,
+      evidenceCommand: testCommand,
+    );
+    final rows = List<ArtifactFeatureRow>.from(pack.matrix.features)
+      ..[index] = ArtifactFeatureRow(
+        id: pack.matrix.features[index].id,
+        canonical: pack.matrix.features[index].canonical,
+        cell: updated,
+      );
+    await artifactStore.save(
+      ArtifactPack(
+        name: pack.name,
+        meta: pack.meta,
+        indexContent: pack.indexContent,
+        matrix: ArtifactMatrix(
+          columnSchema: pack.matrix.columnSchema,
+          features: rows,
+        ),
+        patternsContent: pack.patternsContent,
+        requires: pack.requires,
+      ),
+    );
+    return MarkEvidenceResult(
+      pack: packName,
+      featureId: featureId,
+      cell: updated,
+    );
   }
 
   @override

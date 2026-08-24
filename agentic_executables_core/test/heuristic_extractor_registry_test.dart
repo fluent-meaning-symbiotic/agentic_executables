@@ -45,10 +45,12 @@ void main() {
       expect(ext!.languageId, 'kotlin_swift');
     });
 
-    test('findFor returns null for an unknown directory', () async {
+    test('findFor falls back to the generic extractor for unknown dirs',
+        () async {
       final tmp = await Directory.systemTemp.createTemp('unknown_');
       try {
-        expect(await registry.findFor(tmp), isNull);
+        final extractor = await registry.findFor(tmp);
+        expect(extractor.languageId, 'generic');
       } finally {
         await tmp.delete(recursive: true);
       }

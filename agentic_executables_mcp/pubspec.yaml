@@ -1,7 +1,7 @@
 name: agentic_executables_mcp
 description: MCP server providing strategic guidance for AI agents managing
   Agentic Executables (AE) framework
-version: 3.0.0
+version: 3.2.0
 repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
 issue_tracker: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
 documentation: https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/README.md

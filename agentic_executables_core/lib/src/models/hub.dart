@@ -1,11 +1,8 @@
-import 'hub_byok_config.dart';
-
 class HubConfig {
   const HubConfig({
     this.version = 1,
     this.remotes = const {},
     this.canonicalRemotes = const {},
-    this.byok,
   });
 
   final int version;
@@ -13,9 +10,6 @@ class HubConfig {
 
   /// Reserved for AE 3.x public canonical hub. Empty in 3.0.
   final Map<String, HubRemote> canonicalRemotes;
-
-  /// Optional BYOK block for the distillation dispatcher.
-  final HubByokConfig? byok;
 
   Map<String, dynamic> toJson() => {
         'version': version,
@@ -26,7 +20,6 @@ class HubConfig {
           'canonical_remotes': canonicalRemotes.map(
             (final key, final value) => MapEntry(key, value.toJson()),
           ),
-        if (byok != null) 'byok': byok!.toJson(),
       };
 
   String toYamlString() {
@@ -51,19 +44,6 @@ class HubConfig {
         buffer.writeln('    type: "${entry.value.type}"');
       }
     }
-    if (byok != null) {
-      buffer.writeln('byok:');
-      buffer.writeln('  provider: "${byok!.provider}"');
-      if (byok!.apiKeyEnv != null) {
-        buffer.writeln('  api_key_env: "${byok!.apiKeyEnv}"');
-      }
-      if (byok!.apiKey != null) {
-        buffer.writeln('  api_key: "${byok!.apiKey}"');
-      }
-      if (byok!.model != null) {
-        buffer.writeln('  model: "${byok!.model}"');
-      }
-    }
     return buffer.toString();
   }
 
@@ -81,14 +61,10 @@ class HubConfig {
       return out;
     }
 
-    final byokRaw = map['byok'];
-    final byok = byokRaw is Map ? HubByokConfig.fromMap(byokRaw) : null;
-
     return HubConfig(
       version: (map['version'] as int?) ?? 1,
       remotes: readRemotes(map['remotes']),
       canonicalRemotes: readRemotes(map['canonical_remotes']),
-      byok: byok,
     );
   }
 }

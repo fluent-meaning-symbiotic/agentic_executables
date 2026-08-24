@@ -78,6 +78,89 @@ void main() {
       expect((result['data'] as Map)['tier_counts'], isA<Map>());
     });
 
+    test('mark-evidence records provenance; unknown id errors', () async {
+      // Seed a canonical + linked row so the feature exists.
+      final hub = p.join(tempProject.path, '.ae_hub');
+      final canStore = FileCanonicalStore(hub);
+      final canSvc = DefaultCanonicalService(store: canStore);
+      await canSvc.scaffold('ecs', title: 'ECS');
+      final seeded = await canSvc.load('ecs');
+      await canSvc.upsert(
+        'ecs',
+        CanonicalPack(
+          meta: seeded!.meta,
+          indexContent: seeded.indexContent,
+          changelogContent: seeded.changelogContent,
+          matrix: CanonicalMatrix(
+            concept: 'ecs',
+            version: 1,
+            columnSchema: const [
+              CanonicalColumn(id: 'spec', type: 'text'),
+              CanonicalColumn(id: 'invariant', type: 'text'),
+            ],
+            features: [
+              CanonicalFeature(
+                id: FeatureId.parse('entity.create'),
+                cells: const {'spec': 's', 'invariant': 'i'},
+              ),
+            ],
+          ),
+        ),
+      );
+      final store = FileArtifactStore(hub);
+      final pack = _samplePack('p1');
+      await store.save(
+        ArtifactPack(
+          name: pack.name,
+          meta: ArtifactMeta(
+            kind: pack.meta.kind,
+            title: pack.meta.title,
+            source: pack.meta.source,
+            scannedAt: pack.meta.scannedAt,
+            license: pack.meta.license,
+            authors: pack.meta.authors,
+            referencesCanonical: [CanonicalReference.parse('ecs')],
+            extractor: pack.meta.extractor,
+            distill: pack.meta.distill,
+          ),
+          indexContent: pack.indexContent,
+          matrix: ArtifactMatrix(
+            columnSchema: const [],
+            features: [
+              ArtifactFeatureRow(
+                id: FeatureId.parse('entity.create'),
+                canonical: 'ecs',
+                cell: const ArtifactCell(impl: ImplStatus.missing),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final ok = await adapter.artifact({
+        'operation': 'mark-evidence',
+        'pack': 'p1',
+        'feature_id': 'entity.create',
+        'test_command': 'true',
+        'root': tempProject.path,
+      });
+      expect(ok['success'], isTrue, reason: '$ok');
+      expect(
+        ((ok['data'] as Map)['cell'] as Map)['evidence_command'],
+        'true',
+      );
+
+      final miss = await adapter.artifact({
+        'operation': 'mark-evidence',
+        'pack': 'p1',
+        'feature_id': 'entity.nope',
+        'test_command': 'true',
+        'root': tempProject.path,
+      });
+      expect(miss['success'], isFalse);
+      expect((miss['error'] as Map)['code'], 'feature_not_found');
+    });
+
     test('returns validation_error when operation missing', () async {
       final result = await adapter.artifact({});
       expect(result['success'], isFalse);

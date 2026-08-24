@@ -7,6 +7,7 @@ Shared typed business logic for Agentic Executables v2.
 `agentic_executables_core` keeps AE domain behavior independent from transport layers.
 
 This means:
+
 - CLI, MCP, and future adapters share one source of truth.
 - behavior is deterministic and testable.
 - you can add new frontends without rewriting AE rules.
@@ -16,6 +17,7 @@ This means:
 ### For Humans
 
 Use core when you want to:
+
 - embed AE workflows in your own Dart app/tool.
 - implement custom adapters (HTTP service, IDE plugin, etc.).
 - enforce typed contracts instead of ad-hoc JSON parsing.
@@ -23,6 +25,7 @@ Use core when you want to:
 ### For Agents
 
 Use core abstractions to:
+
 - discover valid contexts/actions.
 - generate AE files through pluggable engines.
 - run verification and evaluation consistently.
@@ -50,6 +53,7 @@ Use core abstractions to:
 ## Generation Contract
 
 Every generation engine must output exactly:
+
 - `ae_install.md`
 - `ae_uninstall.md`
 - `ae_update.md`
@@ -80,7 +84,7 @@ You can plug any inference backend (not only Codex):
 final engine = InferenceGenerationEngine(client: MyInferenceClient());
 ```
 
-Reference guide: `../docs/inference_provider_guide.md`
+Reference guide: `../docs/guides/inference_provider_guide.md`
 
 ## Typical Workflows
 
@@ -95,6 +99,7 @@ dart test
 ```
 
 Covered behaviors include:
+
 - context/action mapping and validation.
 - registry id/path resolution and submit/get behavior.
 - verify/evaluate scoring parity.

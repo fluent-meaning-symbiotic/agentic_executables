@@ -66,7 +66,7 @@ Multiplexed canonical operations.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill`, `accept-concept`. |
+| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill` (emit), `distill-merge` (merge agent draft), `accept-concept`. |
 | `concept` | string | Concept slug. Required for most operations. |
 | `title` | string | Human title (for `init`, `scaffold`). |
 | `from` | string | Source path (for `import`); from-version (for `diff`). |
@@ -82,7 +82,7 @@ Multiplexed canonical operations.
 | `from_proposal` | string | Proposal name (from `.last_proposals.json`) for `accept-concept`. |
 | `root` | string | Project root. |
 
-Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `distillation_failed` (distill), `id_not_in_matrix` (distill), `canonical_not_found` (scaffold update / accept-concept), `proposal_not_found` (accept-concept), `id_collision` (accept-concept).
+Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `draft_parse_failed` / `draft_schema_mismatch` / `draft_invalid` / `draft_concept_mismatch` (distill-merge), `id_not_in_matrix` (distill-merge), `canonical_not_found` (scaffold update / accept-concept), `proposal_not_found` (accept-concept), `id_collision` (accept-concept).
 
 The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
 
@@ -112,7 +112,7 @@ Multiplexed artifact operations.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `operation` | string (req) | One of: `list`, `verify`, `link`, `upgrade-canonical`. |
+| `operation` | string (req) | One of: `list`, `verify` (`run_tests` bool), `link`, `upgrade-canonical`, `mark-evidence` (`pack`, `feature_id`, `test_command` req; `location`, `notes`, `impl` optional). |
 | `pack` | string | Pack name (required for `verify`/`link`/`upgrade-canonical`). |
 | `canonical` | string | Canonical reference (e.g. `ecs` or `gltf/core@v2`). |
 | `to` | string | Target version (for `upgrade-canonical`). |

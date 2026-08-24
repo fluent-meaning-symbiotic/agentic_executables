@@ -27,8 +27,8 @@ void main() {
       expect(AeCoreConfig.artifactPatternsFile, 'patterns.md');
       expect(AeCoreConfig.artifactDriftFile, 'drift.yaml');
     });
-    test('framework version unchanged', () {
-      expect(AeCoreConfig.frameworkVersion, '3.0.0');
+    test('framework version matches pubspec release', () {
+      expect(AeCoreConfig.frameworkVersion, '3.2.0');
     });
   });
 }

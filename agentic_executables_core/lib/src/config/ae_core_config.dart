@@ -1,7 +1,7 @@
 import '../models/types.dart';
 
 class AeCoreConfig {
-  static const String frameworkVersion = '3.0.0';
+  static const String frameworkVersion = '3.2.0';
 
   static const String registryOwner = 'fluent-meaning-symbiotic';
   static const String registryRepo = 'agentic_executables_registry';

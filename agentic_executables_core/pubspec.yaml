@@ -1,6 +1,6 @@
 name: agentic_executables_core
 description: Shared Agentic Executables domain logic and typed services
-version: 3.0.0
+version: 3.2.0
 repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
 publish_to: none
 

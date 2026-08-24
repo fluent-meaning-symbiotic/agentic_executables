@@ -21,7 +21,6 @@ class AeCli {
     this.inferenceClient,
     this.registryProbeUrl,
     this.registryClient,
-    this.distillationServiceOverride,
   })  : _out = out ?? stdout,
         _err = err ?? stderr;
 
@@ -32,10 +31,6 @@ class AeCli {
   final InferenceClient? inferenceClient;
   final String? registryProbeUrl;
   final RegistryClient? registryClient;
-
-  /// Test seam: when non-null, `canonical distill` uses this service
-  /// instead of calling [buildDistillationService].
-  final DistillationService? distillationServiceOverride;
 
   Future<int> run(final List<String> args) async {
     final parser = _buildParser();
@@ -81,7 +76,7 @@ class AeCli {
     envelope['meta'] = {
       ...meta,
       'timing_ms': stopwatch.elapsedMilliseconds,
-      'versions': {'cli': '3.0.0', 'core': AeCoreConfig.frameworkVersion},
+      'versions': {'cli': '3.2.0', 'core': AeCoreConfig.frameworkVersion},
     };
 
     if (!human &&
@@ -366,10 +361,27 @@ class AeCli {
       ..addOption('from', help: 'External canonical directory path.')
       ..addOption('as', help: 'Concept id under which to import.')
       ..addOption('root', help: 'Project root.');
+    canonical.addCommand('import-spec')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('from', help: 'Path to an external spec document (.md).')
+      ..addOption('concept', help: 'Concept slug to create/merge into.')
+      ..addOption('title', help: 'Canonical title (defaults to concept slug).')
+      ..addOption('format',
+          allowed: ['auto', 'speckit', 'headings'],
+          defaultsTo: 'auto',
+          help: 'Parser format (auto detects speckit vs headings).')
+      ..addOption('root', help: 'Project root.');
     canonical.addCommand('distill')
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('pack', help: 'Artifact pack name (required).')
+      ..addOption('pack', help: 'Artifact pack name (required in emit phase).')
+      ..addOption('repo',
+          help: 'Emit phase: public git URL to shallow-clone and distill via '
+              'the generic extractor (code-agnostic). Mutually exclusive '
+              'with --pack.')
       ..addOption('concept', help: 'Canonical concept slug (required).')
+      ..addOption('from-output',
+          help: 'Merge phase: path to the agent\'s ae.canonical.draft.v1 JSON '
+              '(or "-" for stdin). Omit to emit delegation instructions.')
       ..addOption(
         'mode',
         help: 'upsert (new) or refine (seed from existing).',
@@ -400,6 +412,13 @@ class AeCli {
         negatable: false,
         help: 'Exit non-zero on Tier 1+2.',
       )
+      ..addFlag(
+        'run-tests',
+        defaultsTo: false,
+        negatable: false,
+        help: 'Execute recorded evidence commands instead of trusting cells. '
+            'A failing command becomes a Tier 1 entry.',
+      )
       ..addOption('root', help: 'Project root.');
     artifact.addCommand('link')
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -408,6 +427,20 @@ class AeCli {
         'canonical',
         help: 'Canonical reference (e.g. "ecs" or "gltf/core@v2").',
       )
+      ..addOption('root', help: 'Project root.');
+    artifact.addCommand('mark-evidence')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('pack', help: 'Pack name (required).')
+      ..addOption('feature', help: 'Feature id (required).')
+      ..addOption('test-command',
+          help: 'Command that produces the test evidence; executed (not '
+              'trusted) by verify --run-tests (required).')
+      ..addOption('location', help: 'Test file or directory path.')
+      ..addOption('notes', help: 'Free-text provenance note.')
+      ..addOption('impl',
+          allowed: ['done', 'partial', 'missing', 'planned', 'n_a', 'deviates'],
+          defaultsTo: 'done',
+          help: 'Promotes a missing impl cell to this status.')
       ..addOption('root', help: 'Project root.');
     artifact.addCommand('upgrade-canonical')
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -834,10 +867,14 @@ Subcommands:
   init      Stub a new canonical pack with an empty matrix.
   scaffold  Heuristic seed from one or more artifacts (no LLM).
   list      List concept ids in the hub.
-  distill   Delegate distillation to an executor (Claude Code / Codex / BYOK).
+  distill   Emit delegation instructions for the host agent, or merge its
+            returned draft (--from-output). AE never calls a model.
   snapshot  Freeze the live canonical into v<n>/ (bumps version).
   diff      Structural diff between two versions of a concept.
   import    Copy an external canonical directory into this hub.
+  import-spec
+            Import an external spec document (Spec Kit, ADR, markdown)
+            as canonical feature rows. Deterministic, no LLM.
 
 Run `ae canonical <subcommand> --help` for details.
 ''';
@@ -882,23 +919,52 @@ Usage: ae canonical list [--root <dir>]
 
 List all canonical concept ids in the hub.
 ''';
-      case 'canonical distill':
+      case 'canonical import-spec':
         return '''
-Usage: ae canonical distill --pack <artifact> --concept <slug> [--mode upsert|refine] [--root <dir>]
+Usage: ae canonical import-spec --from <file.md> --concept <slug>
+                                [--title <text>] [--format auto|speckit|headings]
+                                [--root <dir>]
 
-Dispatches the configured DistillationExecutor (Claude Code subagent →
-Codex → BYOK) against an artifact pack and merges the validated
-DistillationOutput into the canonical at <hub>/canonical/<concept>/.
+Deterministically parse an external spec document (GitHub Spec Kit spec,
+ADR, or any structured markdown) into canonical feature rows. No LLM.
 
-Options:
-  --pack     Artifact pack name (required).
-  --concept  Canonical concept id to upsert/refine (required).
-  --mode     upsert | refine (default: upsert).
-  --root     Project root containing the .ae_hub (default: cwd).
+Parsing rules:
+  speckit   FR-/NFR-/REQ- requirement lines and User Story sections become
+            features; MUST/SHALL bullets fold into the `invariant` cell.
+  headings  Every ##+ heading becomes one feature; sentences containing
+            must/shall fold into `invariant`.
+  auto      Detects speckit shape, falls back to headings.
+
+Merge semantics: existing rows are never overwritten; colliding ids are
+reported in skipped_ids. Feature ids are assigned as spec.<slug> with
+deterministic _N suffixes on collision.
 
 Examples:
-  ae canonical distill --pack agentic_executables_cli --concept ae_cli
-  ae canonical distill --pack rust_ecs --concept ecs --mode refine
+  ae canonical import-spec --from specs/002-login/spec.md \\
+    --concept auth --title "Authentication"
+''';
+      case 'canonical distill':
+        return '''
+Usage:
+  ae canonical distill --pack <artifact> --concept <slug> [--mode upsert|refine]
+  ae canonical distill --concept <slug> --from-output <file.json|-> [--root <dir>]
+
+AE never calls a model. Distillation is a two-phase delegation:
+
+Phase 1 (emit): with --pack, AE composes the distillation task from the
+artifact's real source files plus the canonical seed rows, and returns
+delegation instructions embedding the task JSON (ae.distillation.task.v1).
+Hand these to your coding agent (Claude Code, pi, Codex, Cursor...).
+
+Phase 2 (merge): the agent returns an ae.canonical.draft.v1 JSON. Merge it
+with --from-output <file> (or "-" for stdin). AE validates the schema,
+enforces id stability (no invented ids), merges into the live canonical,
+and persists any proposed_concepts for `ae canonical accept-concept`.
+
+Examples:
+  ae canonical distill --pack dart_ecs --concept ecs > task.md
+  # ...agent enriches rows...
+  ae canonical distill --concept ecs --from-output agent_draft.json
 ''';
       case 'canonical snapshot':
         return '''
@@ -952,7 +1018,7 @@ List all artifact pack names in the hub.
 ''';
       case 'artifact verify':
         return '''
-Usage: ae artifact verify --pack <name> [--strict] [--root <dir>]
+Usage: ae artifact verify --pack <name> [--strict] [--run-tests] [--root <dir>]
 
 Verify a single artifact pack and emit a tier-classified gap report.
 
@@ -963,6 +1029,21 @@ Options:
 Examples:
   ae artifact verify --pack my_pkg
   ae artifact verify --pack my_pkg --strict
+''';
+      case 'artifact mark-evidence':
+        return '''
+Usage: ae artifact mark-evidence --pack <pack> --feature <id>
+                                 --test-command <cmd> [--location <path>]
+                                 [--impl <status>] [--notes <text>] [--root <dir>]
+
+Record test evidence for one feature row. The command is stored as
+provenance and EXECUTED (not trusted) by `ae artifact verify --run-tests`.
+
+Examples:
+  ae artifact mark-evidence --pack agentic_executables_cli \
+    --feature agentic_executables_cli.embedded_cli_resources \
+    --test-command "dart test test/embedded_resources_test.dart" \
+    --location test/embedded_resources_test.dart
 ''';
       case 'artifact link':
         return '''
@@ -1390,7 +1471,6 @@ Examples:
     final target = command['target']?.toString() ?? _defaultSkillsBaseDir();
 
     final doctor = AeDoctor(
-      codexBinary: codexBinary ?? 'codex',
       environment: environment,
       registryProbeUrl: registryProbeUrl,
     );
@@ -2017,20 +2097,34 @@ Examples:
     final rootDir = Directory(root);
     final entries = await rootDir.list(followLinks: false).toList();
     for (final entity in entries) {
-      if (entity is! Directory) continue;
-      final base = path.basename(entity.path);
+      // Follow symlinks to directories so nested workspaces (e.g.
+      // experiments/<crate> exposed via a link) are ingestible.
+      var dirPath = entity.path;
+      if (entity is Link) {
+        final target = entity.targetSync();
+        final resolved = path.isAbsolute(target)
+            ? target
+            : path.normalize(path.join(root, target));
+        if (!Directory(resolved).existsSync()) continue;
+        dirPath = resolved;
+      } else if (entity is! Directory) {
+        continue;
+      }
+      final base = path.basename(dirPath);
       if (base.startsWith('.') || base == '.ae_hub') continue;
-      final handler = await registry.findFor(entity);
-      if (handler != null) {
-        final name = await svc.ingest(entity);
+      final handler = await registry.findFor(Directory(dirPath));
+      if (handler.languageId != 'generic') {
+        final name = await svc.ingest(Directory(dirPath));
         ingested.add(name);
       } else {
+        // Generic fallback means findFor never returns null; only ingest
+        // dirs a specific extractor recognizes. Unknown dirs are skipped.
         skipped.add(entity.path);
       }
     }
     // Also try the root itself.
     final rootHandler = await registry.findFor(rootDir);
-    if (rootHandler != null) {
+    if (rootHandler.languageId != 'generic') {
       final name = await svc.ingest(rootDir);
       ingested.add(name);
     }
@@ -2157,6 +2251,9 @@ Examples:
     }
     final canStore = FileCanonicalStore(hubPath);
     final svc = DefaultCanonicalService(store: canStore);
+    final specImportSvc = DefaultSpecImportService(
+      canonicalService: svc,
+    );
 
     switch (sub.name) {
       case 'init':
@@ -2345,6 +2442,41 @@ Examples:
         );
         return AeResult.ok(diff.toJson());
 
+      case 'import-spec':
+        final specFrom = sub['from']?.toString();
+        final specConcept = sub['concept']?.toString();
+        if (specFrom == null || specConcept == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --from and/or --concept',
+          );
+        }
+        final specFile = File(specFrom);
+        if (!await specFile.exists()) {
+          return AeResult.fail(
+            code: 'file_not_found',
+            message: 'Spec document not found: $specFrom',
+          );
+        }
+        try {
+          final result = await specImportSvc.importSpec(
+            specConcept,
+            markdown: await specFile.readAsString(),
+            title: sub['title']?.toString(),
+            format: sub['format']?.toString() ?? 'auto',
+          );
+          return AeResult.ok({
+            'concept': result.conceptId,
+            'format': result.format,
+            'created': result.created,
+            'feature_count': result.featureCount,
+            'ids': result.ids,
+            'skipped_ids': result.skippedIds,
+          });
+        } on StateError catch (e) {
+          return AeResult.fail(code: 'spec_parse_empty', message: e.message);
+        }
+
       case 'import':
         final from = sub['from']?.toString();
         final asConcept = sub['as']?.toString();
@@ -2413,6 +2545,15 @@ Examples:
             code: 'id_collision',
             message: '${e.toString()}$detail',
           );
+        } on ArgumentError catch (e) {
+          // FeatureId.parse rejects malformed ids (hyphens, uppercase, etc.).
+          return AeResult.fail(
+            code: 'invalid_feature_id',
+            message: e.toString(),
+          );
+        } on ProposalNotFoundException catch (e) {
+          return AeResult.fail(
+              code: 'proposal_not_found', message: e.toString());
         } on StateError catch (e) {
           if (e.message.contains('canonical_not_found')) {
             return AeResult.fail(
@@ -2438,17 +2579,113 @@ Examples:
   }) async {
     final pack = sub['pack']?.toString();
     final concept = sub['concept']?.toString();
-    final mode = sub['mode']?.toString() ?? 'upsert';
-    if (pack == null || pack.isEmpty) {
-      return AeResult.fail(
-        code: 'validation_error',
-        message: 'Missing required --pack',
-      );
-    }
+    final fromOutput = sub['from-output']?.toString();
     if (concept == null || concept.isEmpty) {
       return AeResult.fail(
         code: 'validation_error',
         message: 'Missing required --concept',
+      );
+    }
+
+    // ---- Phase 2: merge a returned draft (host agent did the model work).
+    if (fromOutput != null) {
+      final String raw;
+      if (fromOutput == '-') {
+        raw = await systemEncoding.decoder.bind(stdin).join();
+      } else {
+        final f = File(fromOutput);
+        if (!await f.exists()) {
+          return AeResult.fail(
+            code: 'file_not_found',
+            message: 'Draft output not found: $fromOutput',
+          );
+        }
+        raw = await f.readAsString();
+      }
+
+      Map<String, dynamic> decoded;
+      try {
+        decoded = jsonDecode(raw) as Map<String, dynamic>;
+      } on FormatException catch (e) {
+        return AeResult.fail(
+          code: 'draft_parse_failed',
+          message: 'Draft output is not valid JSON: ${e.message}',
+        );
+      }
+      if (decoded['schema']?.toString() != 'ae.canonical.draft.v1') {
+        return AeResult.fail(
+          code: 'draft_schema_mismatch',
+          message: 'Expected schema "ae.canonical.draft.v1", got '
+              '"${decoded['schema']}"',
+        );
+      }
+
+      final DistillationOutput output;
+      try {
+        output = DistillationOutput.fromMap(decoded);
+      } catch (e) {
+        return AeResult.fail(
+          code: 'draft_invalid',
+          message: 'Draft output failed validation: $e',
+        );
+      }
+      if (output.conceptId != concept) {
+        return AeResult.fail(
+          code: 'draft_concept_mismatch',
+          message:
+              'Draft is for concept "${output.conceptId}", expected "$concept"',
+        );
+      }
+
+      try {
+        final mergeReport = await canonicalService.mergeDistillationDetailed(
+          concept,
+          output,
+        );
+        await canonicalService.writeProposalsFile(
+          concept,
+          proposals: mergeReport.proposedConcepts,
+          executorUsed: 'host_agent',
+        );
+        final merged = mergeReport.pack;
+        return AeResult.ok({
+          'merged': true,
+          'concept': concept,
+          'version': merged.meta.version,
+          'feature_count': mergeReport.featureCountAfterMerge,
+          'feature_count_received': mergeReport.featureCountReceived,
+          'feature_count_after_merge': mergeReport.featureCountAfterMerge,
+          'executor_used': 'host_agent',
+          if (mergeReport.proposedConcepts.isNotEmpty)
+            'proposed_concepts': mergeReport.proposedConcepts
+                .map((final c) => c.toJson())
+                .toList(growable: false),
+        }, warnings: mergeReport.warnings);
+      } on IdNotInMatrixException catch (e) {
+        return AeResult.fail(code: 'id_not_in_matrix', message: e.toString());
+      }
+    }
+
+    // ---- Phase 1: emit delegation instructions (AE never calls a model).
+    final repoUrl = sub['repo']?.toString();
+    if (repoUrl != null && repoUrl.isNotEmpty) {
+      if (pack != null && pack.isNotEmpty) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message: 'Use either --pack or --repo, not both.',
+        );
+      }
+      return _emitFromRepo(
+        repoUrl: repoUrl,
+        concept: concept,
+        hubPath: hubPath,
+        canonicalService: canonicalService,
+      );
+    }
+    if (pack == null || pack.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required --pack (or --repo <url>) in emit phase',
       );
     }
 
@@ -2457,89 +2694,100 @@ Examples:
     if (artifact == null) {
       return AeResult.fail(
         code: 'artifact_not_found',
-        message: 'Artifact pack not found: $pack',
+        message: 'Artifact pack not found: \$pack',
       );
     }
 
     final existing = await canonicalService.load(concept);
-    final conceptVersion = existing?.meta.version ?? 1;
-    final seed = existing != null
-        ? existing.matrix.features
-        : const <CanonicalFeature>[];
-
-    final language = artifact.meta.extractor.split('_').first;
-    final files = artifact.meta.source.files
-        .map((final f) => f.path)
-        .toList(growable: false);
-
-    final task = DistillationTask(
-      conceptId: concept,
-      conceptVersion: conceptVersion,
-      sourceArtifact: DistillationSourceArtifact(
-        name: pack,
-        language: language,
-        files: files,
-        structuralSummary: artifact.indexContent,
-      ),
-      matrixSeedRows: seed,
+    final emission = const DefaultDistillDelegationService().buildEmission(
+      pack: pack,
+      concept: concept,
+      artifact: artifact,
+      existingCanonical: existing,
     );
 
-    final resolver = FileHubResolver();
-    final hubConfig = await resolver.loadConfig(hubPath);
-    final service = distillationServiceOverride ??
-        buildDistillationService(
-          config: hubConfig,
-          processEnv: environment,
-        );
+    return AeResult.ok({
+      'mode': 'delegate',
+      'concept': concept,
+      'pack': pack,
+      'seed_rows': emission.task.matrixSeedRows.length,
+      'instructions': emission.instructions,
+      'next': 'Hand these instructions to your coding agent, save its JSON '
+          'response, then run: ae canonical distill --concept \$concept '
+          '--from-output <file.json>',
+    });
+  }
 
-    final DistillationResult result;
+  /// Code-agnostic emit path: shallow-clone a public repo, ingest it via
+  /// the generic extractor, and emit delegation instructions from the
+  /// resulting artifact pack. The temp clone is deleted before returning.
+  Future<AeResult<Map<String, dynamic>>> _emitFromRepo({
+    required final String repoUrl,
+    required final String concept,
+    required final String hubPath,
+    required final DefaultCanonicalService canonicalService,
+  }) async {
+    final cloner = RepoCloner();
+    Directory tempDir;
     try {
-      result = await service.distill(task);
-    } on DistillationServiceFailure catch (e) {
+      tempDir = await cloner.clone(repoUrl);
+    } on ProcessException catch (e) {
       return AeResult.fail(
-        code: 'distillation_failed',
+        code: 'repo_clone_failed',
         message: e.message,
       );
     }
 
-    final CanonicalMergeResult mergeReport;
     try {
-      mergeReport = await canonicalService.mergeDistillationDetailed(
-        concept,
-        result.output,
-      );
-    } on IdNotInMatrixException catch (e) {
-      return AeResult.fail(
-        code: 'id_not_in_matrix',
-        message: e.toString(),
-      );
-    }
-    final merged = mergeReport.pack;
+      final artStore = FileArtifactStore(hubPath);
+      final packName = await DefaultArtifactService(
+        artifactStore: artStore,
+        canonicalStore: FileCanonicalStore(hubPath),
+        extractorRegistry: HeuristicExtractorRegistry(const [
+          DartHeuristicExtractor(),
+          RustHeuristicExtractor(),
+          KotlinSwiftHeuristicExtractor(),
+        ]),
+      ).ingest(tempDir);
 
-    // Persist proposals so `ae canonical accept-concept` can look them up.
-    // Cleared automatically when the next distill produces zero proposals.
-    await canonicalService.writeProposalsFile(
-      concept,
-      proposals: mergeReport.proposedConcepts,
-      executorUsed: result.executorId,
-    );
+      // Re-point source.path at the repo URL so sync doesn't chase a
+      // deleted temp dir; keep hashed files as the durable record.
+      final artifact = await artStore.load(packName);
+      if (artifact != null) {
+        await artStore.save(artifact);
+      }
 
-    return AeResult.ok(
-      {
+      final loaded = await artStore.load(packName);
+      if (loaded == null) {
+        return AeResult.fail(
+          code: 'artifact_not_found',
+          message: 'Ingested pack vanished: $packName',
+        );
+      }
+
+      final existing = await canonicalService.load(concept);
+      final emission = const DefaultDistillDelegationService().buildEmission(
+        pack: packName,
+        concept: concept,
+        artifact: loaded,
+        existingCanonical: existing,
+      );
+
+      return AeResult.ok({
+        'mode': 'delegate',
         'concept': concept,
-        'version': merged.meta.version,
-        'feature_count': mergeReport.featureCountAfterMerge,
-        'feature_count_received': mergeReport.featureCountReceived,
-        'feature_count_after_merge': mergeReport.featureCountAfterMerge,
-        'mode': mode,
-        'executor_used': result.executorId,
-        if (mergeReport.proposedConcepts.isNotEmpty)
-          'proposed_concepts': mergeReport.proposedConcepts
-              .map((final c) => c.toJson())
-              .toList(growable: false),
-      },
-      warnings: mergeReport.warnings,
-    );
+        'repo': repoUrl,
+        'pack': packName,
+        'extractor': loaded.meta.extractor,
+        'seed_rows': emission.task.matrixSeedRows.length,
+        'instructions': emission.instructions,
+        'next': 'Hand these instructions to your coding agent, save its JSON '
+            'response, then run: ae canonical distill --concept \$concept '
+            '--from-output <file.json>',
+      });
+    } finally {
+      await cloner.cleanup(tempDir);
+    }
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleArtifact(
@@ -2577,13 +2825,14 @@ Examples:
       case 'verify':
         final pack = sub['pack']?.toString();
         final strict = sub['strict'] as bool? ?? false;
+        final runTests = sub['run-tests'] as bool? ?? false;
         if (pack == null) {
           return AeResult.fail(
             code: 'validation_error',
             message: 'Missing --pack',
           );
         }
-        final report = await svc.verifyOne(pack);
+        final report = await svc.verifyOne(pack, runTests: runTests);
         if (strict && report.hasBlockingTiers) {
           return AeResult.fail(
             code: 'verify_failed',
@@ -2592,6 +2841,43 @@ Examples:
           );
         }
         return AeResult.ok(report.toJson());
+
+      case 'mark-evidence':
+        final pack = sub['pack']?.toString();
+        final feature = sub['feature']?.toString();
+        final testCommand = sub['test-command']?.toString();
+        if (pack == null || feature == null || testCommand == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --pack, --feature, and/or --test-command',
+          );
+        }
+        try {
+          final implRaw = sub['impl']?.toString();
+          final result = await svc.markEvidence(
+            pack,
+            feature,
+            testCommand: testCommand,
+            location: sub['location']?.toString(),
+            notes: sub['notes']?.toString(),
+            impl: ImplStatus.fromString(implRaw ?? 'done'),
+          );
+          return AeResult.ok({
+            'pack': result.pack,
+            'feature_id': result.featureId,
+            'cell': result.cell.toJson(),
+            'note': 'Evidence recorded. Run ae artifact verify --pack $pack '
+                '--run-tests to execute it.',
+          });
+        } on ArgumentError catch (e) {
+          final msg = e.message?.toString() ?? e.toString();
+          return AeResult.fail(
+            code: msg.contains('not found in pack')
+                ? 'feature_not_found'
+                : 'artifact_not_found',
+            message: msg,
+          );
+        }
 
       case 'link':
         final pack = sub['pack']?.toString();

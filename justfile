@@ -2,7 +2,7 @@
 # Requires: `just`, Dart; optional `cargo` for Rust parity.
 # Env: AE_E2E_NETWORK=1 — URL smoke pack; AE_E2E_EXTENDED=1 — downstream smoke.
 # Env: AE_E2E_LOCALE — BCP 47 locale for spec export plans (default: en).
-# Env: E2E_MATRIX_PRIMARY — overrides matrix_primary from docs/e2e_know_sources.yaml.
+# Env: E2E_MATRIX_PRIMARY — overrides matrix_primary from docs/e2e/e2e_know_sources.yaml.
 # Env: AE_E2E_MATRIX_BASELINE — optional repo-relative or absolute matrix YAML; writes matrix_diff.json on export.
 
 set shell := ['bash', '-uc']
@@ -28,9 +28,9 @@ spec-export:
 	if [[ -n "${AE_E2E_MATRIX_BASELINE:-}" ]]; then
 	  BP="${AE_E2E_MATRIX_BASELINE}"
 	  if [[ "$BP" != /* ]]; then BP="$REPO/$BP"; fi
-	  dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE" --manifest "$REPO/docs/e2e_know_sources.yaml" --matrix-baseline "$BP"
+	  dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE" --manifest "$REPO/docs/e2e/e2e_know_sources.yaml" --matrix-baseline "$BP"
 	else
-	  dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE" --manifest "$REPO/docs/e2e_know_sources.yaml"
+	  dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE" --manifest "$REPO/docs/e2e/e2e_know_sources.yaml"
 	fi
 
 # Wipe hub, generated matrix, spec exports (keeps spec/.gitkeep).
@@ -87,9 +87,9 @@ e2e:
 	  echo "$o" | grep -q '"success":true' || { echo "$o" >&2; exit 1; }
 	  o=$(dart run agentic_executables_cli/bin/ae.dart generate --library-id dart_e2e --library-root /tmp --engine template --dry-run --know ae_pkg_cli_readme 2>&1) || { echo "$o" >&2; exit 1; }
 	  echo "$o" | grep -q '"success":true' || { echo "$o" >&2; exit 1; }
-	  o=$(dart run agentic_executables_cli/bin/ae.dart verify --input "$REPO/docs/ae_e2e_verify.json" 2>&1) || { echo "$o" >&2; exit 1; }
+	  o=$(dart run agentic_executables_cli/bin/ae.dart verify --input "$REPO/docs/e2e/ae_e2e_verify.json" 2>&1) || { echo "$o" >&2; exit 1; }
 	  echo "$o" | grep -q '"success":true' || { echo "$o" >&2; exit 1; }
-	  o=$(dart run agentic_executables_cli/bin/ae.dart evaluate --input "$REPO/docs/ae_e2e_evaluate.json" 2>&1) || { echo "$o" >&2; exit 1; }
+	  o=$(dart run agentic_executables_cli/bin/ae.dart evaluate --input "$REPO/docs/e2e/ae_e2e_evaluate.json" 2>&1) || { echo "$o" >&2; exit 1; }
 	  echo "$o" | grep -q '"success":true' || { echo "$o" >&2; exit 1; }
 	  o=$(dart run agentic_executables_cli/bin/ae.dart package resolve --package dev.xs.registry --target linux --format json 2>&1) || { echo "$o" >&2; exit 1; }
 	  tmp=$(mktemp)

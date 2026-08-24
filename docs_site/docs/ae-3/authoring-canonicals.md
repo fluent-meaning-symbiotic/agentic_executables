@@ -45,16 +45,16 @@ license:
   url: "https://creativecommons.org/licenses/by/4.0/"
 authors:
   - name: "Anton Malofeev"
-    role: original_author             # original_author | contributor | maintainer
+    role: original_author # original_author | contributor | maintainer
 sources:
-  - kind: paper                       # paper | website | code | book | spec
+  - kind: paper # paper | website | code | book | spec
     title: "Data-Oriented Design Book"
     url: "https://www.dataorienteddesign.com/dodbook/"
   - kind: code
     title: "Bevy ECS"
     url: "https://github.com/bevyengine/bevy"
 provenance:
-  authored: hand                      # hand | distilled_from_artifact | imported_from_public_hub
+  authored: hand # hand | distilled_from_artifact | imported_from_public_hub
   authored_at: "2026-04-17"
   distilled_from: null
 ```
@@ -72,9 +72,9 @@ version: 1
 column_schema:
   - { id: spec, type: text }
   - { id: invariant, type: text }
-  - { id: test_recipe, type: text }   # how to verify the invariant; optional
+  - { id: test_recipe, type: text } # how to verify the invariant; optional
 features:
-  - id: entity.create                 # stable id; namespaced; never reused
+  - id: entity.create # stable id; namespaced; never reused
     spec: "An entity is created with a unique, opaque handle."
     invariant: "Handles are non-reusable within a session."
   - id: system.tick
@@ -137,12 +137,12 @@ ae artifact link --pack dart_render3d --canonical ecsly/render_pipeline
 
 `ae canonical scaffold` (spec §6.7) is the make-or-break solo-dev entry point: pure-heuristic, no network, no LLM, no host-agent dependency. Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>` (camelCase becomes snake_case). Re-running on the same concept errors with `canonical_exists` unless you pass `--overwrite`.
 
-`ae canonical distill` dispatches a [DistillationExecutor](./adapters#distillationexecutor) — Claude Code subagent, Codex exec, or BYOK direct LLM — and validates the response against the `ae.canonical.draft.v1` schema. The output is always a draft for human review; AE never silently accepts a generated canonical.
+`ae canonical distill` emits a delegation task (task JSON + instructions) that **you** — or any coding agent — execute against the real source, then merges the returned `ae.canonical.draft.v1` draft after schema and id-stability validation. The output is always a draft for human review; AE never silently accepts a generated canonical. For sources in any language, emit from a public repo with `--repo <url>` (generic extractor fallback).
 
 If you'd rather start from a blank file (small concepts you know cold), `ae canonical init --concept <slug> --title <text>` writes only the meta/index/empty-matrix scaffolding and leaves the matrix authoring entirely to you.
 
 ## Where to next
 
-- [Adapters](./adapters) — how `DistillationExecutor` plugs in.
+- [Adapters](./adapters) — the delegation boundary and extractor families.
 - [CLI reference](./cli-reference) — every `ae canonical *` flag.
 - [Walkthroughs](./walkthroughs) — see canonical authoring inside three real scenarios.

@@ -15,7 +15,7 @@ base class AgenticExecutablesMcpServer extends MCPServer with ToolsSupport {
   }) : super.fromStreamChannel(
           implementation: Implementation(
             name: 'agentic-executables-mcp',
-            version: version ?? '3.0.0',
+            version: version ?? '3.2.0',
           ),
           instructions: '''
 Agentic Executables MCP v3 (thin adapter over shared core).

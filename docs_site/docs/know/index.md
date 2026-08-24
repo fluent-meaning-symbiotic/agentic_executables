@@ -26,7 +26,7 @@ ae know build ──────┤
 
 ### Extract → implement (full loop)
 
-For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site). Local monorepo E2E for that repo uses **`just e2e`** (see **`docs/ae_e2e_log.md`**).
+For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site). Local monorepo E2E for that repo uses **`just e2e`** (see **`docs/e2e/ae_e2e_log.md`**).
 
 ### Example flows
 
@@ -97,12 +97,12 @@ Expected result: knowledge pack stored in hub under canonical layout `know/{type
 
 When the source (e.g. URL) is already stored, use `--on-conflict` to control behavior:
 
-| Value | Behavior |
-|-------|----------|
+| Value             | Behavior                                                           |
+| ----------------- | ------------------------------------------------------------------ |
 | `reuse` (default) | Attach the new name as an alias to the existing pack; no re-fetch. |
-| `update` | Re-fetch and update the canonical pack; attach name as alias. |
-| `fail` | Return an error (e.g. in CI when duplicates are not allowed). |
-| `new_version` | Create a new version under the same source id. |
+| `update`          | Re-fetch and update the canonical pack; attach name as alias.      |
+| `fail`            | Return an error (e.g. in CI when duplicates are not allowed).      |
+| `new_version`     | Create a new version under the same source id.                     |
 
 ```bash
 ae know build --url https://example.com/spec.pdf --name spec_a
@@ -196,10 +196,10 @@ Use this for migration planning between spec versions.
 
 ### Example column templates
 
-| Use case | Example `--columns` |
-|----------|---------------------|
+| Use case               | Example `--columns`                                          |
+| ---------------------- | ------------------------------------------------------------ |
 | Multi-runtime pipeline | `imported,bundle_preserved,runtime_native,runtime_web,proof` |
-| Minimal | `scope,done,proof` |
+| Minimal                | `scope,done,proof`                                           |
 
 `ae instructions` / `ae generate --know` include **index + rendered matrix + normative link** when present.
 
@@ -267,13 +267,13 @@ tags: []
 
 ## Extraction strategies
 
-| Source | Extractor | Format flag | What happens |
-|--------|-----------|-------------|-------------|
-| llms.txt / markdown URL | Passthrough | `auto` or `llms_txt` | Fetch → normalize → store |
-| HTML page | URL Extractor | `html` | Fetch → Jina Reader → markdown → store |
-| PDF URL (e.g. arXiv) | PDF Extractor | `auto` or `pdf` | Fetch → Jina Reader → markdown → store |
-| Git repository | Repo Extractor | auto-detected | Clone → scan README/docs/examples → build index |
-| Local file | Passthrough | `auto` or `markdown` | Read → store |
+| Source                  | Extractor      | Format flag          | What happens                                    |
+| ----------------------- | -------------- | -------------------- | ----------------------------------------------- |
+| llms.txt / markdown URL | Passthrough    | `auto` or `llms_txt` | Fetch → normalize → store                       |
+| HTML page               | URL Extractor  | `html`               | Fetch → Jina Reader → markdown → store          |
+| PDF URL (e.g. arXiv)    | PDF Extractor  | `auto` or `pdf`      | Fetch → Jina Reader → markdown → store          |
+| Git repository          | Repo Extractor | auto-detected        | Clone → scan README/docs/examples → build index |
+| Local file              | Passthrough    | `auto` or `markdown` | Read → store                                    |
 
 Use `--format pdf` when the URL does not end in `.pdf` or contain `/pdf/` but you know the response is PDF. Use `auto` for standard PDF URLs so the format is inferred.
 

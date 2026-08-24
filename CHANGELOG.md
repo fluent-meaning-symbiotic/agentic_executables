@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 3.2.0
+
+### Changed — BREAKING: AE never calls a model (hard cut, crystallization #2)
+
+- **Removed all distillation executors** (`ClaudeCodeSubagentExecutor`, `CodexExecExecutor`, `ByokLlmExecutor`), the executor ports/service/dispatcher, and the `hub.yaml` `byok:` config block. AE is a pure tool: it **emits delegation instructions** (task JSON `ae.distillation.task.v1` + prompt) for any host agent (Claude Code, pi, Codex CLI, Cursor), then **validates and merges** the agent's returned `ae.canonical.draft.v1` draft. No API keys, no model CLIs spawned, works offline.
+- **`ae canonical distill` is now two-phase**: emit (`--pack`) → agent work → merge (`--from-output <file|->`). MCP parity via `ae_canonical` ops `distill` / `distill-merge`. New error codes: `draft_parse_failed`, `draft_schema_mismatch`, `draft_invalid`, `draft_concept_mismatch`; `distillation_failed` retired. `executor_used` is now always `host_agent` on merged drafts.
+- **`ae doctor` no longer probes model binaries** — nothing model-related to probe; checks are Dart SDK, skill target writability, registry reachability.
+- Follow-up (not in this pass): the v2 `ae generate --engine codex` inference path remains as an explicit opt-in and is slated for the same treatment.
+
+### Added
+
+- **Code-agnostic distillation: `ae canonical distill --repo <git-url>`.** Shallow-clones any public repository, ingests it via the best available extractor, and emits delegation instructions — distillation no longer requires a language-specific extractor. New `GenericHeuristicExtractor` (language-agnostic fallback: hashes text sources across 30+ extensions with a 500-file cap, README excerpt + per-extension summary, license detection) and `RepoCloner` adapter. The extractor registry now falls back to the generic extractor instead of returning null; `ae init`/MCP `init` only ingest directories a _specific_ extractor recognizes (unknown dirs skipped). New error code `repo_clone_failed`. Validated end-to-end on a foreign-language repo (left-pad, JS/TS).
+- **Self-dogfood complete**: AE's own three Dart packages distilled into canonicals `ae-core` (172 rows + 5 accepted cross-cutting concepts incl. hexagonal-layering, id-stability, no-model-lock-in), `ae-cli2` (14 rows), `ae-mcp` (2 rows). All Tier-1 findings closed with executed test evidence; project-wide `verify` is clean.
+- **Skills updated to the delegation architecture**: `skills/ae-cli/SKILL.md` v1.5.0 (`--repo` code-agnostic path, evidence-enforcement recipes, dogfood-state notes), plugin `/ae-distill` slash command accepts pack or repo URL.
+- **`ae artifact mark-evidence` + `verify --run-tests` (evidence enforcement).** `mark-evidence` records test provenance (`evidence_command`, location) on a feature row and promotes `impl: missing`; `verify --run-tests` **executes** recorded commands instead of trusting cells — a failing command becomes a Tier 1 entry (`evidence failed`). New error code `feature_not_found`. Available via CLI, MCP `ae_artifact` op `mark-evidence`.
+- **Skills updated to the delegation architecture**: `skills/ae-cli/SKILL.md` v1.4.0 (canonical workflow + distill delegation loop), plugin `/ae-distill` slash command rewritten for emit→work→merge. _(Superseded by v1.5.0 above.)_
+- **Pipeline benchmark** at [`benchmarks/pipeline_bench.sh`](benchmarks/pipeline_bench.sh); pivot-validation evaluation note at [`docs/superpowers/notes/2026-08-24-pivot-validation-benchmark.md`](docs/superpowers/notes/2026-08-24-pivot-validation-benchmark.md).
+  — deterministically import external spec documents (GitHub Spec Kit specs, ADRs, structured markdown) as canonical feature rows. No LLM, merge-safe (existing rows never overwritten; collisions reported in `skipped_ids`). `speckit` format parses FR-/NFR-/REQ- requirement lines and User Story sections with MUST/SHALL bullets folding into `invariant`; `headings` format maps every ##+ heading to a feature with sentence-level invariant extraction. New error codes: `file_not_found`, `spec_parse_empty`.
+- **Seed canonical corpus** at [`canonicals/`](canonicals/): real standards contracts (`auth/oauth2_pkce`, `mcp/server`) generated from source spec docs via `import-spec` and ready to `ae canonical import` into any hub.
+- **Multi-language killer demo** at [`examples/multi_language_kv/`](examples/multi_language_kv/run_demo.sh): one kv_store canonical, Dart + Rust realizations, cross-language Tier 1 gaps surfacing in ~10s without an LLM.
+- **North Star section** in README reframing the project goal: make any specification verifiable against any implementation.
+
+### Fixed
+
+- **Distillation executor fallback** (spec §6.5 / Iter 1 dogfood Q4): when the highest-priority runnable executor fails twice (e.g. `claude_code` selected but binary broken), the dispatcher now falls through to the next runnable executor instead of failing. Fails only after every runnable executor is exhausted.
+- **`ae doctor` probes `claude_available`** symmetrically with `codex_available` (Iter 1 dogfood finding).
+- **`accept-concept` id validation order**: malformed `--id` (hyphens, uppercase) now fails fast with `invalid_feature_id` before the proposals file is consulted, instead of crashing with `internal_error` or confusingly reporting `proposal_not_found`. Error code documented.
+- **New `safe_file_writer_test.dart`** in CLI: direct unit tests for `SafeFileWriter` consent semantics (add/block/update/check/unchanged) — gap surfaced by the evidence-enforcement loop when mark-evidence pointed at a nonexistent test file.
+- **Docs de-staled**: `adapters.md`, `authoring-canonicals.md`, `walkthroughs.md` updated for the delegation architecture; `cli-reference.md` documents `--repo`, the generic extractor, and `invalid_feature_id`.
+- **Embedded skill template re-synced** with `skills/ae-cli/SKILL.md` (v1.5.0); `embedded_resources_test` green.
+- **Pubspec/envelope versions bumped to 3.2.0** across core/cli/mcp (Iter 1 dogfood finding #7 — binaries no longer report stale 3.0.0).
+
 ## [3.1.0] - 2026-04-27
 
 ### Added

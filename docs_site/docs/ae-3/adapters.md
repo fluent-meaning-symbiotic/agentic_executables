@@ -46,6 +46,11 @@ abstract interface class HeuristicExtractor {
 - **`DartHeuristicExtractor`** — deep. Parses `pubspec.yaml` workspaces, walks recursive sub-packages, detects barrel files, parses library directives, enumerates public symbols, harvests dartdoc comments, flags bridge packages (presence of `dart:ffi` / method-channel imports).
 - **`RustHeuristicExtractor`** — solid. Reads `Cargo.toml` workspace members, enumerates `pub` items, is feature-flag aware.
 - **`KotlinSwiftHeuristicExtractor`** — best-effort. Parses `Package.swift` and `build.gradle.kts` to identify the package; lists Kotlin/Swift class files. No deep semantic parse on day one.
+- **`GenericHeuristicExtractor`** — language-agnostic fallback (new in 3.2). Handles any directory: hashes text source files across 30+ extensions (500-file cap, vendor/build dirs ignored), builds an index from the README excerpt plus per-extension file counts, detects common licenses. This is what makes distillation **code-agnostic** — the delegation path needs no language-specific parse because the host agent reads whatever the structural summary points at.
+
+The registry (`HeuristicExtractorRegistry.findFor`) dispatches to the first specific extractor whose `canHandle` matches and falls back to the generic extractor when none do — ingestion never hard-fails on an unknown language. Callers that must distinguish (e.g. `ae init`, which only ingests recognized packages) check `languageId != 'generic'`.
+
+Related adapter: **`RepoCloner`** — shallow-clones a public git URL into a temp directory for code-agnostic distillation (`ae canonical distill --repo <url>`); cleans up on failure.
 
 A `HeuristicArtifact` produces:
 
@@ -53,29 +58,20 @@ A `HeuristicArtifact` produces:
 - `index.md` — package title, README excerpt, parsed exports/public API, dependency list.
 - Empty `matrix.yaml` (`features: []`). Rows are added when a canonical is linked.
 
-JS/TS, Python, and Go extractors are roadmapped (see [Roadmap → 3.2/3.x](./roadmap#three-two-three-x)). The interface is stable; if you need one of these now, write it against the contract above.
+JS/TS, Python, and Go extractors remain roadmapped as _accelerators_ (see [Roadmap → 3.2/3.x](./roadmap#three-two-three-x)) — with the generic fallback they are no longer a capability gate: unknown languages distill today via the delegation path, just with less pre-digested context. A specific extractor, when written, improves the structural summary and sync fidelity.
 
-## DistillationExecutor — hand a task to an agent
+## Distillation delegation — AE emits, the agent works, AE validates
 
-The third family is the deliberate boundary between AE and any LLM. AE never owns a model; it builds a `DistillationTask`, picks an executor, and validates the output against a strict JSON schema.
+The third family is the deliberate boundary between AE and any LLM — and it is a **hard boundary**: AE never owns a model and never calls one. There are no executor adapters, no API keys in `hub.yaml`, no model CLIs spawned by AE.
 
-```dart
-abstract interface class DistillationExecutor {
-  String get executorId;                    // "claude_code" | "codex" | "byok"
-  bool canRun();                            // is host available now?
-  Future<DistillationOutput> execute(DistillationTask task);
-}
-```
+Instead, distillation is a **two-phase delegation**:
 
-3.0 adapters:
+1. **Emit** — AE builds a `DistillationTask` (`ae.distillation.task.v1`) from the artifact's real source files plus the canonical seed rows, wraps it in delegation instructions, and returns both to the caller. The operator hands these to whatever coding agent they use (Claude Code, pi, Codex CLI, Cursor — AE is harness-agnostic by construction).
+2. **Merge** — the agent returns an `ae.canonical.draft.v1` JSON. AE validates the schema and `concept_id`, enforces id stability (no invented ids — see the id-stability design), merges into the live canonical, and persists `proposed_concepts` for `ae canonical accept-concept`.
 
-- **`ClaudeCodeSubagentExecutor`** — detects host (env var / parent process / MCP context); uses Claude Code's Task tool when running inside the agent, or `claude -p` in CI. Zero new API key required when running inside Claude Code.
-- **`CodexExecExecutor`** — uses `codex exec` for non-interactive distillation. Same idea, different host.
-- **`ByokLlmExecutor`** — direct API call (Anthropic / OpenAI / etc.) using a user-configured key in `hub.yaml`. The fallback for headless / CI / "I don't want to run inside an agent."
+The former executor adapters (`claude_code` subagent, `codex exec`, BYOK direct-LLM) were removed in 3.2.0: they made AE a model _caller_, which broke crystallization #2 ("AE composes with the agent rather than competing with it"). Delegation keeps AE a pure tool: deterministic, offline, keyless, and identical on every harness.
 
-The wire format is documented in spec §7. AE → executor sends `ae.distillation.task.v1`; executor → AE returns `ae.canonical.draft.v1`. On schema validation failure, AE retries once with the validation error included as additional context. A second failure fails loudly — no silent partial merge.
-
-Picking an executor: AE prefers the matched host (Claude Code / Codex if detected), falls back to BYOK if configured, and fails with `distillation_failed` (see the [error code playbook](/reference/)) if none can run. See [CLI reference → ae canonical distill](./cli-reference#ae-canonical-distill) for the user-facing flags.
+See [CLI reference → ae canonical distill](./cli-reference#ae-canonical-distill) for the user-facing flags.
 
 ## Storage — split from the 2.x knowledge store
 
@@ -94,16 +90,16 @@ These aren't user-facing in 3.0; they exist to make alternate backends (memory s
 
 Above the adapters, services are the orchestrators:
 
-- **`CanonicalService`** — init, list, snapshot, diff, import, distill (via executor).
+- **`CanonicalService`** — init, list, snapshot, diff, import, distill merge.
 - **`ArtifactService`** — ingest (calls heuristic extractor), sync (incremental re-scan), verify, link, upgrade-canonical, materialize.
 - **`DriftService`** — code drift (file-hash diff vs `meta.yaml`); intent drift (canonical invariants without tests).
-- **`DistillationService`** — build task, dispatch executor, validate output, merge into canonical.
+- **`DefaultDistillDelegationService`** — build the emission (task + instructions). Merge-side validation lives in `CanonicalService.mergeDistillationDetailed`.
 - **`HubService`** — config, status, resolution.
 
 Each service is a small surface, separately testable, and lands in its own file under `agentic_executables_core/lib/src/services/`. Read the source if you want the precise contract — it's small enough to hold in one head.
 
 ## Where to next
 
-- [Authoring canonicals](./authoring-canonicals) — how `DistillationExecutor` is used end-to-end.
+- [Authoring canonicals](./authoring-canonicals) — how distillation delegation is used end-to-end.
 - [CLI reference](./cli-reference) — every command and the adapter it triggers.
 - [Roadmap](./roadmap) — which adapters are planned for 3.x.

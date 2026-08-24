@@ -66,10 +66,11 @@ void main() {
     final result = await runCli(['canonical', 'distill', '--help']);
 
     expect(result.exitCode, 0);
-    expect(result.stdout, contains('Usage: ae canonical distill'));
+    expect(result.stdout, contains('ae canonical distill'));
     expect(result.stdout, contains('--pack'));
     expect(result.stdout, contains('--concept'));
-    expect(result.stdout, contains('--mode'));
+    expect(result.stdout, contains('--from-output'));
+    expect(result.stdout, contains('never calls a model'));
     expect(result.stdout, isNot(contains('No contextual help found')));
   });
 

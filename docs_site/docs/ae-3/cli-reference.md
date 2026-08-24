@@ -11,33 +11,35 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 
 ## Commands at a glance
 
-| Command | Purpose |
-|---|---|
-| [`ae init`](#ae-init) | Heuristic-extract every package in a project into artifacts |
-| [`ae status`](#ae-status) | Tier-classified gap report |
-| [`ae sync`](#ae-sync) | Re-scan source, write `drift.yaml` |
-| [`ae canonical init`](#ae-canonical-init) | Stub a new canonical pack with an empty matrix |
-| [`ae canonical scaffold`](#ae-canonical-scaffold) | Heuristic seed from one or more artifacts (no LLM) |
-| `ae canonical scaffold --update` | Reconcile matrix against current source symbols (no LLM). |
-| `ae canonical accept-concept` | Promote a distilled `proposed_concept` to a stable matrix row. |
-| [`ae canonical list`](#ae-canonical-list) | List canonicals in the resolved hubs |
-| [`ae canonical snapshot`](#ae-canonical-snapshot) | Freeze a breaking change into `vN/` |
-| [`ae canonical diff`](#ae-canonical-diff) | Diff two versions of a canonical |
-| [`ae canonical import`](#ae-canonical-import) | Copy a canonical from a path |
-| [`ae canonical distill`](#ae-canonical-distill) | Delegate distillation to an executor |
-| [`ae artifact list`](#ae-artifact-list) | List artifacts in the project hub |
-| [`ae artifact verify`](#ae-artifact-verify) | Tiered verify for one artifact |
-| [`ae artifact link`](#ae-artifact-link) | Add a canonical reference; materialize matrix |
-| [`ae artifact upgrade-canonical`](#ae-artifact-upgrade-canonical) | Move an artifact to a newer canonical version |
-| [`ae hub init`](#ae-hub-init) | Create `.ae_hub/` |
-| [`ae hub status`](#ae-hub-status) | Hub config and resolution diagnostics |
-| [`ae registry`](#ae-registry) | AE Use registry operations (carry-over) |
-| [`ae package`](#ae-package) | Package resolve / validate (carry-over) |
-| [`ae use`](#ae-use) | Local-first AE Use install / uninstall / update |
-| [`ae doctor`](#ae-doctor) | Preflight checks |
-| [`ae definition`](#ae-definition) | Emit AE framework definition |
-| [`ae skill`](#ae-skill) | Install / update the AE CLI skill template |
-| [`ae spec export`](#ae-spec-export) | Emit `spec_export.v3` JSON for the hub |
+| Command                                                           | Purpose                                                                      |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [`ae init`](#ae-init)                                             | Heuristic-extract every package in a project into artifacts                  |
+| [`ae status`](#ae-status)                                         | Tier-classified gap report                                                   |
+| [`ae sync`](#ae-sync)                                             | Re-scan source, write `drift.yaml`                                           |
+| [`ae canonical init`](#ae-canonical-init)                         | Stub a new canonical pack with an empty matrix                               |
+| [`ae canonical scaffold`](#ae-canonical-scaffold)                 | Heuristic seed from one or more artifacts (no LLM)                           |
+| `ae canonical scaffold --update`                                  | Reconcile matrix against current source symbols (no LLM).                    |
+| `ae canonical accept-concept`                                     | Promote a distilled `proposed_concept` to a stable matrix row.               |
+| [`ae canonical list`](#ae-canonical-list)                         | List canonicals in the resolved hubs                                         |
+| [`ae canonical snapshot`](#ae-canonical-snapshot)                 | Freeze a breaking change into `vN/`                                          |
+| [`ae canonical diff`](#ae-canonical-diff)                         | Diff two versions of a canonical                                             |
+| [`ae canonical import`](#ae-canonical-import)                     | Copy a canonical from a path                                                 |
+| [`ae canonical import-spec`](#ae-canonical-import-spec)           | Import a spec document (Spec Kit, ADR, markdown) as canonical rows — no LLM  |
+| [`ae canonical distill`](#ae-canonical-distill)                   | Emit delegation instructions / merge the agent's draft (never calls a model) |
+| [`ae artifact list`](#ae-artifact-list)                           | List artifacts in the project hub                                            |
+| [`ae artifact verify`](#ae-artifact-verify)                       | Tiered verify for one artifact                                               |
+| [`ae artifact mark-evidence`](#ae-artifact-mark-evidence)         | Record test-evidence provenance for one feature row                          |
+| [`ae artifact link`](#ae-artifact-link)                           | Add a canonical reference; materialize matrix                                |
+| [`ae artifact upgrade-canonical`](#ae-artifact-upgrade-canonical) | Move an artifact to a newer canonical version                                |
+| [`ae hub init`](#ae-hub-init)                                     | Create `.ae_hub/`                                                            |
+| [`ae hub status`](#ae-hub-status)                                 | Hub config and resolution diagnostics                                        |
+| [`ae registry`](#ae-registry)                                     | AE Use registry operations (carry-over)                                      |
+| [`ae package`](#ae-package)                                       | Package resolve / validate (carry-over)                                      |
+| [`ae use`](#ae-use)                                               | Local-first AE Use install / uninstall / update                              |
+| [`ae doctor`](#ae-doctor)                                         | Preflight checks                                                             |
+| [`ae definition`](#ae-definition)                                 | Emit AE framework definition                                                 |
+| [`ae skill`](#ae-skill)                                           | Install / update the AE CLI skill template                                   |
+| [`ae spec export`](#ae-spec-export)                               | Emit `spec_export.v3` JSON for the hub                                       |
 
 ## Project-level commands
 
@@ -148,22 +150,47 @@ ae canonical import --from <path> --as <concept-id> [--root <dir>]
 
 Copies a canonical directory from `<path>` (e.g. a package's `.ae_hub/canonical/<concept>/`) into the target hub. The 3.0 path for package-shipped canonicals until auto-discovery lands.
 
+### `ae canonical import-spec`
+
+```bash
+ae canonical import-spec --from <file.md> --concept <slug> [--title <t>] [--format auto|speckit|headings] [--root <dir>]
+```
+
+Deterministically parses an external specification document into canonical feature rows. No LLM. This is the on-ramp for specs you already have:
+
+- **`speckit` format** — GitHub Spec Kit style: `FR-1:` / `NFR-2:` requirement lines and `User Story` sections become features; MUST/SHALL bullets fold into the `invariant` cell.
+- **`headings` format** — every `##`+ heading becomes one feature; sentences containing _must/shall_ fold into `invariant`. Works for ADRs and any structured markdown.
+- **`auto`** (default) detects the speckit shape first.
+
+Merge semantics are safe by construction: existing rows are never overwritten; colliding ids land in `skipped_ids`. Feature ids are assigned as `spec.<slug>` with deterministic `_N` suffixes.
+
+Seed canonicals ready to import live in the repo's [`canonicals/`](https://github.com/fluent-meaning-symbiotic/agentic_executables/tree/main/canonicals) directory (OAuth2 PKCE, MCP server contract).
+
 ### `ae canonical distill`
 
 ```bash
-ae canonical distill --pack <artifact> --concept <slug>
-                     [--mode upsert|refine] [--root <dir>]
+# Phase 1 (emit): compose the delegation task — no model is called.
+ae canonical distill --pack <artifact> --concept <slug> [--mode upsert|refine] [--root <dir>]
+
+# Phase 1 alternative (code-agnostic): distill from any public git repo.
+ae canonical distill --repo <git-url> --concept <slug> [--root <dir>]
+
+# Phase 2 (merge): validate + merge the agent's returned draft.
+ae canonical distill --concept <slug> --from-output <file.json|-> [--root <dir>]
 ```
 
-Builds a `DistillationTask` from the artifact, dispatches to the matched [DistillationExecutor](./adapters#distillationexecutor), validates the response against `ae.canonical.draft.v1`, and merges into the canonical. `--mode upsert` creates a fresh canonical (default); `--mode refine` seeds the task from an existing canonical for incremental work.
+`--repo` makes distillation **code-agnostic**: AE shallow-clones the URL, ingests it via the best available extractor (specific if recognized, otherwise the language-agnostic [generic extractor](./adapters#heuristicextractor)), and emits delegation instructions from the resulting pack. The temp clone is deleted before the command returns; the hashed file list in the artifact pack is the durable record. Error: `repo_clone_failed` when `git clone --depth 1` fails (bad URL, private repo, no network). `--pack` and `--repo` are mutually exclusive.
 
-Envelope `data` keys: `concept`, `version`, `feature_count` (alias for `feature_count_after_merge`, retained for back-compat), `feature_count_received`, `feature_count_after_merge`, `mode`, `executor_used`, and `proposed_concepts` (only present when non-empty). Each entry in `proposed_concepts` has `name`, `spec`, `invariant`, and optional `rationale`; promote one to a matrix row via `ae canonical accept-concept` (Phase B; see [id-stability design](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md)).
+**AE never calls a model.** Distillation is a two-phase delegation:
 
-Distill never invents feature ids — every row it emits must already be in the matrix. New symbol-derived features arrive via `ae canonical scaffold` / `--update`; new cross-cutting concepts arrive via `proposed_concepts` and an explicit `accept-concept`. Rejected ids surface as a non-zero envelope with `error.code = "id_not_in_matrix"`.
+1. **Emit** — AE builds a `DistillationTask` from the artifact's real source files plus the canonical seed rows, and returns delegation instructions embedding the task JSON (`ae.distillation.task.v1`). Hand these to any coding agent (Claude Code, pi, Codex CLI, Cursor...).
+2. **Merge** — the agent returns an `ae.canonical.draft.v1` JSON; merge it with `--from-output <file>` (or `-` for stdin). AE validates the schema and `concept_id`, enforces id stability (no invented ids), merges into the live canonical, and persists any `proposed_concepts` for [`ae canonical accept-concept`](#ae-canonical-accept-concept).
 
-When the received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+Envelope `data` keys (emit): `mode: "delegate"`, `concept`, `pack`, `seed_rows`, `instructions`, `next`. Envelope `data` keys (merge): `merged: true`, `concept`, `version`, `feature_count`, `feature_count_received`, `feature_count_after_merge`, `executor_used: "host_agent"`, and `proposed_concepts` when non-empty. Each entry in `proposed_concepts` has `name`, `spec`, `invariant`, and optional `rationale`.
 
-Exit codes: `0` on success, non-zero with `artifact_not_found` if `--pack` is unknown, `distillation_failed` if no executor can run or all attempts failed, `id_not_in_matrix` if distill emitted feature ids absent from the pre-distill matrix.
+Distill never invents feature ids — every row in a merged draft must already be in the matrix. New symbol-derived features arrive via `ae canonical scaffold` / `--update`; new cross-cutting concepts arrive via `proposed_concepts` and an explicit accept-concept. Rejected ids surface as a non-zero envelope with `error.code = "id_not_in_matrix"`.
+
+Error codes (merge phase): `draft_parse_failed` (invalid JSON), `draft_schema_mismatch` (wrong schema), `draft_invalid` (structural validation), `draft_concept_mismatch` (wrong concept), `id_not_in_matrix`.
 
 ### `ae canonical accept-concept`
 
@@ -173,6 +200,7 @@ Required: `--concept`, `--id` (the new feature id), `--from-proposal` (the propo
 
 Reads `.ae_hub/canonical/<concept>/.last_proposals.json` (written automatically at distill end, gitignored). Errors:
 
+- `invalid_feature_id` — `--id` is malformed (segments must match `[a-z][a-z0-9_]*`; hyphens, uppercase, and empty segments are rejected). Validated before the proposals file is consulted.
 - `proposal_not_found` — no proposals file exists, or `--from-proposal` is not in the file.
 - `id_collision` — `--id` already exists in the matrix.
 - `canonical_not_found` — the concept does not exist (run `ae canonical scaffold` or `ae canonical init` first).
@@ -198,10 +226,22 @@ Lists artifacts under `.ae_hub/artifacts/{local,external,use}/`.
 ### `ae artifact verify`
 
 ```bash
-ae artifact verify --pack <name> [--strict] [--root <dir>]
+ae artifact verify --pack <name> [--strict] [--run-tests] [--root <dir>]
 ```
 
-Tier-classified verify for one artifact. `--strict` exits non-zero on any Tier 1+2 finding (not in `drift.yaml.accepted:`). Use in CI.
+Tiered gap report for one artifact against its referenced canonicals. With `--strict`, exits non-zero on Tier 1+2 unless accepted in `drift.yaml`.
+
+With `--run-tests`, every referenced-canonical row carrying a recorded `evidence_command` is **executed** (via `bash -c`, 120 s cap, cwd = the pack's source path) instead of trusted: exit 0 confirms the evidence; a failing command becomes a Tier 1 entry (`evidence failed: '<cmd>' exited N`) — the pack is caught lying about its own tests. Rows without recorded commands keep legacy behavior (claimed cells are trusted).
+
+### `ae artifact mark-evidence`
+
+```bash
+ae artifact mark-evidence --pack <pack> --feature <id> --test-command <cmd>
+                          [--location <path>] [--impl <status>] [--notes <text>]
+                          [--root <dir>]
+```
+
+Records test evidence for one feature row: sets the cell's test status, stores the executing command as provenance (`evidence_command`), optionally records the test-file `location`, and promotes an `impl: missing` cell to the given status (default `done`). Errors: `feature_not_found` when the id is not in the pack's matrix (link a canonical containing it first).
 
 ### `ae artifact link`
 
