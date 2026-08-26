@@ -27,7 +27,7 @@ directions, across languages, forever.
 
 Concretely, we win when:
 
-1. **Any spec format is eligible.** GitHub Spec Kit specs, ADRs, plain
+1. **Any document is eligible.** Roadmaps, strategy notes, GitHub Spec Kit specs, ADRs, plain
    structured markdown import deterministically into a canonical pack
    (`ae canonical import-spec`). No re-authoring, no LLM gate.
 2. **Any language realization is checkable.** One canonical, many
@@ -50,7 +50,7 @@ Recently landed:
 
 - **Code-agnostic distillation** — `ae canonical distill --repo <url>` distills any public repo in any language via a generic extractor + delegation; language extractors are accelerators, not gates.
 - **Evidence enforcement** — `ae artifact mark-evidence` records test provenance; `verify --run-tests` executes recorded commands instead of trusting hand-edited cells. A pack can no longer lie about its tests.
-- **Spec importers** — Spec Kit / ADR / markdown import deterministically (`ae canonical import-spec`); seed corpus in [`canonicals/`](canonicals/) (OAuth2 PKCE, MCP server).
+- **Document importers** — roadmap / strategy / ADR / markdown import deterministically (`ae canonical import-spec`); legacy Spec Kit compatibility included; seed corpus in [`canonicals/`](canonicals/) (OAuth2 PKCE, MCP server).
 - **Delegation architecture** — AE never calls a model. It emits delegation instructions for any host agent and validates/merges the returned draft with strict ID stability.
 - **Self-dogfooded** — all three AE packages are distilled into verified canonicals (`ae-core`, `ae-cli2`, `ae-mcp`), Tier-1 clean with executed test evidence. Also validated end-to-end on external projects (JS/TS repo, Dart ECS workspace).
 
@@ -70,7 +70,7 @@ Think of AE like a USB-C port for project knowledge. Just as USB-C provides a st
 
 ## What can AE do?
 
-- **Import existing specs** (Spec Kit, ADRs, markdown) into verifiable canonical packs — deterministic, no LLM (`ae canonical import-spec`)
+- **Import existing documents** (roadmaps, strategy notes, ADRs, markdown) into verifiable canonical packs — deterministic, no LLM (`ae canonical import-spec`)
 - **Distill knowledge from any public repo, in any language** — `ae canonical distill --repo <url>` shallow-clones, ingests via the best extractor (generic fallback for unknown languages), and emits a delegation task for your coding agent
 - **Extract structural inventories** from Dart / Rust / Kotlin-Swift codebases via heuristic extractors (`ae init`); unknown languages distill through the code-agnostic path
 - **Link realizations to specs** and materialize per-feature evidence matrices (`ae artifact link`)
@@ -106,7 +106,7 @@ ae hub init --project
 ae init                                                  # extract packages -> artifacts
 
 # Start from an existing spec...
-ae canonical import-spec --from spec.md --concept my-spec
+ae canonical import-spec --from vision.md --concept my-vision --format document
 # ...or from code (any language, even a public repo):
 ae canonical scaffold --concept mine --title "Mine" --from-artifact <pack>
 ae canonical distill --repo https://github.com/org/repo --concept mine
@@ -141,7 +141,7 @@ cd agentic_executables_cli && dart pub get && dart run bin/ae.dart definition
 | `ae hub pull`                       | Pull from remote registry                                                                                                             |
 | `ae hub push`                       | Generate push instructions                                                                                                            |
 | `ae init`                           | Heuristic-extract every package into artifact packs                                                                                   |
-| `ae canonical import-spec`          | Import a spec document (Spec Kit / ADR / markdown) as canonical rows — no LLM                                                         |
+| `ae canonical import-spec`          | Import any document (roadmap / strategy / ADR / markdown) as canonical rows — no LLM                                                         |
 | `ae canonical scaffold`             | Seed a canonical from extracted artifacts (no LLM)                                                                                    |
 | `ae canonical distill`              | Emit a delegation task (`--pack` or code-agnostic `--repo <url>`) or merge the agent's draft (`--from-output`)                        |
 | `ae canonical accept-concept`       | Promote a distilled cross-cutting concept to a stable matrix row                                                                      |

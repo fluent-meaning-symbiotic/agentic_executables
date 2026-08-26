@@ -11,7 +11,7 @@ What's next, what's deferred, what's deliberately not coming. AE 3.0 ships lean 
 
 Things 3.0 is designed for and that should land within weeks of 3.0:
 
-- **Spec importers (SHIPPED 2026-08).** `ae canonical import-spec` deterministically imports GitHub Spec Kit specs, ADRs, and structured markdown as canonical feature rows — no LLM, merge-safe. The strategy shifted from "authors write canonicals" to "make any existing spec verifiable"; language extractors stop being the adoption bottleneck.
+- **Universal document importers (SHIPPED 2026-08).** `ae canonical import-spec` deterministically imports roadmaps, strategy notes, GitHub Spec Kit specs, ADRs, and structured markdown as canonical feature rows — no LLM, merge-safe, and no required authoring format. The strategy shifted from "authors write canonicals" to "make any existing document verifiable"; language extractors stop being the adoption bottleneck.
 - **AE never calls a model (SHIPPED 2026-08, breaking).** The executor family (claude_code / codex / byok) was hard-cut. Distillation is now emit-delegation (task + instructions for the host agent) plus validated merge (`--from-output` / op `distill-merge`). AE is a tool that delegates instructions — never a model caller.
 - **Code-agnostic distillation (SHIPPED 2026-08).** `ae canonical distill --repo <url>` distills any public repo in any language: shallow clone → generic-extractor ingest (specific extractor when recognized) → delegation emit. Language extractors are now accelerators, not gates. Self-dogfooded: all three AE packages distilled into verified canonicals (`ae-core`, `ae-cli2`, `ae-mcp`), Tier-1 clean with executed evidence.
 

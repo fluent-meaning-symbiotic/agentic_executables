@@ -24,7 +24,7 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 | [`ae canonical snapshot`](#ae-canonical-snapshot)                 | Freeze a breaking change into `vN/`                                          |
 | [`ae canonical diff`](#ae-canonical-diff)                         | Diff two versions of a canonical                                             |
 | [`ae canonical import`](#ae-canonical-import)                     | Copy a canonical from a path                                                 |
-| [`ae canonical import-spec`](#ae-canonical-import-spec)           | Import a spec document (Spec Kit, ADR, markdown) as canonical rows — no LLM  |
+| [`ae canonical import-spec`](#ae-canonical-import-spec)           | Import any document (roadmap, strategy, ADR, markdown) as canonical rows — no LLM  |
 | [`ae canonical distill`](#ae-canonical-distill)                   | Emit delegation instructions / merge the agent's draft (never calls a model) |
 | [`ae artifact list`](#ae-artifact-list)                           | List artifacts in the project hub                                            |
 | [`ae artifact verify`](#ae-artifact-verify)                       | Tiered verify for one artifact                                               |
@@ -153,14 +153,14 @@ Copies a canonical directory from `<path>` (e.g. a package's `.ae_hub/canonical/
 ### `ae canonical import-spec`
 
 ```bash
-ae canonical import-spec --from <file.md> --concept <slug> [--title <t>] [--format auto|speckit|headings] [--root <dir>]
+ae canonical import-spec --from <file.md> --concept <slug> [--title <t>] [--format auto|document|speckit|headings] [--root <dir>]
 ```
 
 Deterministically parses an external specification document into canonical feature rows. No LLM. This is the on-ramp for specs you already have:
 
-- **`speckit` format** — GitHub Spec Kit style: `FR-1:` / `NFR-2:` requirement lines and `User Story` sections become features; MUST/SHALL bullets fold into the `invariant` cell.
-- **`headings` format** — every `##`+ heading becomes one feature; sentences containing _must/shall_ fold into `invariant`. Works for ADRs and any structured markdown.
-- **`auto`** (default) detects the speckit shape first.
+- **`document` format** — any markdown: `##`+ headings become features, concise body text folds into `spec`, and must/shall sentences fold into `invariant`. Works for roadmaps, strategy notes, ADRs, and structured markdown.
+- **`speckit` format** — explicit legacy compatibility for GitHub Spec Kit style `FR-1:` / `NFR-2:` requirement lines and `User Story` sections.
+- **`auto`** (default) parses any markdown while preserving backward-compatible recognition of legacy Spec Kit shapes.
 
 Merge semantics are safe by construction: existing rows are never overwritten; colliding ids land in `skipped_ids`. Feature ids are assigned as `spec.<slug>` with deterministic `_N` suffixes.
 

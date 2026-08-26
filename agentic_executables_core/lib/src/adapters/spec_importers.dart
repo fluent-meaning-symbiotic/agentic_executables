@@ -34,13 +34,18 @@ class ParsedSpec {
 }
 
 class SpecImportParser {
-  /// Auto-detects the format and parses [markdown].
+  /// Parses any markdown document. Spec Kit recognition is a legacy
+  /// compatibility path, never an authoring requirement.
   static ParsedSpec parse(final String markdown) {
     if (_looksLikeSpeckit(markdown)) {
       return parseSpeckit(markdown);
     }
     return parseHeadings(markdown);
   }
+
+  /// Alias for universal document ingestion. Every supported document is
+  /// ultimately represented as concise canonical feature-matrix rows.
+  static ParsedSpec parseDocument(final String markdown) => parse(markdown);
 
   static bool _looksLikeSpeckit(final String markdown) {
     final reqLine = RegExp(r'^\s*(FR|NFR|REQ)[- ]?\d+\s*[:.]', multiLine: true);

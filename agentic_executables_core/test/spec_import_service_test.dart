@@ -53,6 +53,30 @@ void main() {
       expect(decision.invariant, contains('must resolve conflicts'));
     });
 
+    test('parses any document without requiring a specification format', () {
+      const markdown = '''
+# 2026–2028 Vision
+
+## One number
+
+The app must show one daily number. Planning stays long-term.
+
+## Commitments
+
+- Subscriptions are commitments.
+- A commitment must update the number.
+''';
+      final parsed = SpecImportParser.parseDocument(markdown);
+      expect(parsed.format, 'headings');
+      expect(
+        parsed.features.map((feature) => feature.suggestedId),
+        ['one_number', 'commitments'],
+      );
+      expect(parsed.features[0].spec, contains('Planning stays long-term.'));
+      expect(parsed.features[0].invariant, contains('one daily number'));
+      expect(parsed.features[1].spec, contains('Subscriptions are'));
+    });
+
     test('slugify strips leading digits and caps length', () {
       expect(SpecImportParser.slugify('2026 Roadmap!'),
           startsWith('sec_'));
@@ -93,6 +117,24 @@ void main() {
         pack.matrix.features[0].cells['spec'],
         contains('authenticate'),
       );
+    });
+
+    test('creates canonical matrix rows from any document', () async {
+      final svc = DefaultSpecImportService(canonicalService: canonicalService);
+      const markdown = '# Vision\n\n## Household\n\nTwo people must share one budget.\n';
+      final result = await svc.importSpec(
+        'vision',
+        markdown: markdown,
+        title: 'Vision',
+        format: 'document',
+      );
+      expect(result.format, 'headings');
+      expect(result.ids, ['spec.household']);
+      final pack = await canonicalService.load('vision');
+      expect(pack!.matrix.columnSchema.map((column) => column.id),
+          containsAll(['spec', 'invariant']));
+      expect(pack.matrix.features.single.cells['invariant'],
+          'Two people must share one budget.');
     });
 
     test('merge semantics never clobber existing rows', () async {

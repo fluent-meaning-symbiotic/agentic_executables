@@ -17,7 +17,7 @@ class SpecImportResult {
 
   final String conceptId;
 
-  /// `speckit` | `headings`
+  /// `document`, or a legacy compatibility format (`speckit` | `headings`).
   final String format;
   final int featureCount;
   final List<String> ids;
@@ -28,9 +28,9 @@ class SpecImportResult {
   final bool created;
 }
 
-/// Imports external spec documents into canonical packs. Deterministic,
-/// no LLM. Merge-safe: existing rows are never overwritten; colliding ids
-/// are reported in [SpecImportResult.skippedIds].
+  /// Imports external documents into canonical packs. Deterministic,
+  /// no LLM. Merge-safe: existing rows are never overwritten; colliding ids
+  /// are reported in [SpecImportResult.skippedIds].
 class DefaultSpecImportService {
   DefaultSpecImportService({required this.canonicalService});
 
@@ -45,6 +45,7 @@ class DefaultSpecImportService {
     final parsed = switch (format) {
       'speckit' => SpecImportParser.parseSpeckit(markdown),
       'headings' => SpecImportParser.parseHeadings(markdown),
+      'document' => SpecImportParser.parseDocument(markdown),
       _ => SpecImportParser.parse(markdown),
     };
 

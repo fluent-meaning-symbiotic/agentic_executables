@@ -367,9 +367,11 @@ class AeCli {
       ..addOption('concept', help: 'Concept slug to create/merge into.')
       ..addOption('title', help: 'Canonical title (defaults to concept slug).')
       ..addOption('format',
-          allowed: ['auto', 'speckit', 'headings'],
+          allowed: ['auto', 'document', 'speckit', 'headings'],
           defaultsTo: 'auto',
-          help: 'Parser format (auto detects speckit vs headings).')
+          help:
+              'Parser mode; auto supports any markdown and preserves '
+              'legacy Speckit compatibility.')
       ..addOption('root', help: 'Project root.');
     canonical.addCommand('distill')
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -922,18 +924,20 @@ List all canonical concept ids in the hub.
       case 'canonical import-spec':
         return '''
 Usage: ae canonical import-spec --from <file.md> --concept <slug>
-                                [--title <text>] [--format auto|speckit|headings]
+                                [--title <text>]
+                                [--format auto|document|speckit|headings]
                                 [--root <dir>]
 
-Deterministically parse an external spec document (GitHub Spec Kit spec,
-ADR, or any structured markdown) into canonical feature rows. No LLM.
+Deterministically parse any external document (roadmap, strategy, ADR,
+structured markdown) into canonical feature rows and generate the feature
+matrix. No LLM and no required authoring format.
 
 Parsing rules:
-  speckit   FR-/NFR-/REQ- requirement lines and User Story sections become
-            features; MUST/SHALL bullets fold into the `invariant` cell.
-  headings  Every ##+ heading becomes one feature; sentences containing
-            must/shall fold into `invariant`.
-  auto      Detects speckit shape, falls back to headings.
+  document  Any markdown: ##+ headings become features; concise body text
+            becomes `spec`; must/shall sentences become `invariant`.
+  auto      Default universal parsing with backward-compatible recognition
+            of legacy Speckit requirement lines.
+  speckit   Explicit legacy compatibility mode.
 
 Merge semantics: existing rows are never overwritten; colliding ids are
 reported in skipped_ids. Feature ids are assigned as spec.<slug> with
