@@ -34,6 +34,7 @@ export 'src/ports/inference_client.dart';
 export 'src/ports/process_runner.dart';
 export 'src/ports/registry_client.dart';
 export 'src/ports/skill_template_provider.dart';
+export 'src/ports/transformer.dart';
 export 'src/services/ae_definition_service.dart';
 export 'src/services/ae_generation_service.dart';
 export 'src/services/ae_hub_service.dart';
