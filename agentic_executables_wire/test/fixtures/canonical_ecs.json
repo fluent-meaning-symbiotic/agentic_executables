@@ -1,0 +1,56 @@
+{
+  "schema": "ae.canonical.v3",
+  "meta": {
+    "schema": "ae.canonical.meta.v1",
+    "concept": "ecs",
+    "version": 1,
+    "title": "Entity-Component-System (canonical)",
+    "license": {
+      "spdx": "CC-BY-4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "authors": [
+      {
+        "name": "Anton Malofeev",
+        "role": "original_author"
+      }
+    ],
+    "sources": [
+      {
+        "kind": "code",
+        "title": "Bevy ECS",
+        "url": "https://github.com/bevyengine/bevy"
+      }
+    ],
+    "provenance": {
+      "authored": "hand",
+      "authored_at": "2026-04-17T00:00:00.000Z"
+    }
+  },
+  "matrix": {
+    "schema": "ae.canonical_matrix.v1",
+    "concept": "ecs",
+    "version": 1,
+    "column_schema": [
+      { "id": "spec", "type": "text" },
+      { "id": "invariant", "type": "text" }
+    ],
+    "features": [
+      {
+        "id": "entity.create",
+        "spec": "An entity is created with a unique opaque handle.",
+        "invariant": "Handles are non-reusable within a session."
+      },
+      {
+        "id": "system.tick",
+        "spec": "Systems run in declared order each tick.",
+        "invariant": "Tick is monotonically increasing."
+      },
+      {
+        "id": "query.iterate",
+        "spec": "Queries iterate matching archetypes."
+      }
+    ]
+  },
+  "index_md": "# ecs\n\nCanonical ECS model. Entities are opaque handles; systems run in declared order each tick; queries iterate matching archetypes.\n"
+}

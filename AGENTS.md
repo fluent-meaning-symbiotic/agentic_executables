@@ -16,6 +16,8 @@ model lock-in, shareable canonical packs over private notes.
 executable lifecycle instructions. Dart monorepo:
 
 - `agentic_executables_core/` — typed business logic, ports, adapters
+- `agentic_executables_wire/` — zero-dep wire contracts (verify tiers,
+  canonical→meaning-tree export) consumed by agent hosts without embedding AE
 - `agentic_executables_cli/` — the `ae` CLI (JSON-first output; `--human` for readable)
 - `agentic_executables_mcp/` — MCP v3 adapter
 - `docs_site/` — VitePress docs (publishes `/llms.txt`)

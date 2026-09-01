@@ -1,0 +1,15 @@
+name: agentic_executables_wire
+description: >-
+  Wire contracts for Agentic Executables: tier-classified verify entries and
+  canonical→meaning-tree exports. Pure Dart, zero dependencies — the stable
+  contract any agent host can consume without embedding AE.
+version: 0.1.0
+repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.24.0
