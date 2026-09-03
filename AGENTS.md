@@ -21,6 +21,9 @@ executable lifecycle instructions. Dart monorepo:
 - `agentic_executables_cli/` — the `ae` CLI (JSON-first output; `--human` for readable)
 - `agentic_executables_mcp/` — MCP v3 adapter
 - `docs_site/` — VitePress docs (publishes `/llms.txt`)
+- `docs/ae_harness_etl_spec.md` — **URGENT cross-repo contract** (workspace-oracle
+  wire: failing tests → intent skeletons, materializer specs as data; ties to
+  harness ADR 0022 / PLAN R6) — read before touching `agentic_executables_wire/`
 - `skills/ae-cli/` — repo-managed agent skill template (installed via `ae skill install`)
 
 ## Commands

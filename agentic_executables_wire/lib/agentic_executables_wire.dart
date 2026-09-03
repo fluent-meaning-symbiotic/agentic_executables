@@ -14,8 +14,11 @@
 ///   analyzer/linter output) + project-guided repair-pack executables
 ///   (ADR 0021): the model never chooses the executable; the source
 ///   analyzer re-run is the oracle.
+/// - `edit_executable_wire.dart` — parameterized edit executables (ADR
+///   0023 §3): pack-declared, model slots, host span materialization.
 library;
 
 export 'src/meaning_tree_export.dart';
 export 'src/problem_wire.dart';
+export 'src/edit_executable_wire.dart';
 export 'src/verify_wire.dart';
