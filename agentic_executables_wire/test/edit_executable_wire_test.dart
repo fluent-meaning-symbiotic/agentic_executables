@@ -48,4 +48,46 @@ void main() {
     expect(wire.isApiBreaking, isTrue);
     expect(wire.toJson()['api_breaking'], isTrue);
   });
+
+  test('structural class-shape kinds round-trip (add_constructor_param)', () {
+    const wire = EditExecutableWire(
+      id: 'dart/add_constructor_param',
+      kind: EditExecutableKind.addConstructorParam,
+      params: [
+        'symbolId',
+        'paramName',
+        'paramType',
+        'required',
+        'defaultValue',
+        'constructor',
+        'field',
+        'initializer',
+      ],
+      verification: [EditVerification.analyze, EditVerification.test],
+      scope: 'lexical',
+      description:
+          'splice a constructor param + backing field (+ initializer when '
+          'required) — host-realized, consent-gated at apply',
+    );
+    final back = EditExecutableWire.fromJson(wire.toJson());
+    expect(back.kind, EditExecutableKind.addConstructorParam);
+    expect(back.kind.wire, 'add_constructor_param');
+    expect(back.params, wire.params);
+    expect(back.isApiBreaking, isFalse);
+  });
+
+  test('structural class-shape kinds round-trip (add_enum_case)', () {
+    const wire = EditExecutableWire(
+      id: 'dart/add_enum_case',
+      kind: EditExecutableKind.addEnumCase,
+      params: ['symbolId', 'caseName', 'args'],
+      verification: [EditVerification.analyze],
+      scope: 'lexical',
+    );
+    final json = wire.toJson();
+    expect(json['kind'], 'add_enum_case');
+    final back = EditExecutableWire.fromJson(json);
+    expect(back.kind, EditExecutableKind.addEnumCase);
+    expect(back.params, ['symbolId', 'caseName', 'args']);
+  });
 }

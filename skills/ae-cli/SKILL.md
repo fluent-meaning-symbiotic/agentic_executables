@@ -3,7 +3,7 @@ name: ae-cli
 description: Execute Agentic Executables (AE) workflows through the `ae` CLI — AE 3.x canonical/artifact verification (spec import, code extraction from any language, distill delegation), plus framework definition, lifecycle file generation, quality gates, registry operations, and skill install/update. Use when working with AE hubs, canonical or artifact packs, knowledge packs, or ae_* commands.
 ---
 
-<!-- ae-cli-skill-version: 1.5.0 -->
+<!-- ae-cli-skill-version: 1.6.0 -->
 
 # ae-cli
 
@@ -83,6 +83,11 @@ ae artifact verify --pack <name> [--strict] [--run-tests]
 ae artifact mark-evidence --pack <name> --feature <id> --test-command <cmd> [--location <path>] [--impl <status>] [--notes <text>]
 ae artifact upgrade-canonical --pack <name> --canonical <id> --to vN
 ae spec export --out <dir>
+
+# --- Knowledge plane (LLM-free; packs under .ae_ln/ + local hub manifest) ---
+ae know <sources.json…> --name <id> [--concept <c>] [--version <v>]  # validate rows → canonical pack
+ae know --export <nodes.json> --name <id>   # canonical pack → meaning-tree node JSON
+ae know --import <nodes.json> --name <id>   # meaning-tree node JSON → canonical pack
 
 # --- Lifecycle / registry (v2 carry-over) ---
 ae definition

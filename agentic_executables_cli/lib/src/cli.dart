@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:agentic_executables_core/agentic_executables_core.dart';
+import 'package:agentic_executables_wire/agentic_executables_wire.dart' as wire;
 import 'package:args/args.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:path/path.dart' as path;
 
 import 'engine/codex_exec_generation_engine.dart';
@@ -89,6 +91,10 @@ class AeCli {
       _printHuman(envelope);
     } else {
       _out.writeln(jsonEncode(envelope));
+    }
+
+    if (commandPath == 'know') {
+      _emitKnowNamedData(envelope);
     }
 
     if (commandPath == 'doctor' && envelope['success'] == true) {
@@ -460,6 +466,26 @@ class AeCli {
       ..addOption('root', help: 'Project root (defaults to cwd).')
       ..addOption('locale', help: 'Locale code (default: en).');
 
+    parser.addCommand('know')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Pack id (required).')
+      ..addOption('root', help: 'Project root (defaults to cwd).')
+      ..addOption(
+        'export',
+        help: 'Export the named pack to meaning-tree node JSON at this path.',
+      )
+      ..addOption(
+        'import',
+        help: 'Construct the named canonical pack from meaning-tree node JSON '
+            'at this path.',
+      )
+      ..addOption('concept', help: 'Concept label stored in the pack.')
+      ..addOption('version', help: 'Pack version (int or string).')
+      ..addOption(
+        'out',
+        help: 'Pack file name override (default: <name>.knowledge_pack.json).',
+      );
+
     return parser;
   }
 
@@ -540,6 +566,9 @@ Commands:
   ae canonical <init|scaffold|list|distill|snapshot|diff|import> [...]
   ae artifact <list|verify|link|upgrade-canonical> [...]
   ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
+  ae know <sources…> --name <id> [--root <dir>] [--concept <c>] [--version <v>]
+  ae know --export <nodes.json> --name <id> [--root <dir>]
+  ae know --import <nodes.json> --name <id> [--root <dir>]
 ''';
 
   String _contextualHelp(final String commandPath) {
@@ -1101,6 +1130,34 @@ Examples:
   ae spec export --out ./.ae_export
   ae spec export --out ./.ae_export --hub ./.ae_hub --locale en
 ''';
+      case 'know':
+        return '''
+Usage: ae know <sources…> --name <id> [--root <dir>] [--concept <c>] [--version <v>] [--out <file>]
+       ae know --export <nodes.json> --name <id> [--root <dir>]
+       ae know --import <nodes.json> --name <id> [--root <dir>]
+
+Knowledge plane (LLM-free). Reads knowledge-at-rest rows (JSON in the
+ae.knowledge_pack.v1 row shape: intent/op/step/goal/section/spec/feature),
+validates them through the wire contract, and writes a canonical pack
+(byte-identical canonical form) under `<root>/.ae_ln/` plus a LOCAL hub
+manifest (`ae.hub_manifest.v1`: pack id → canonical file sha256 + version).
+
+Modes:
+  <sources…>          Build/update the pack from JSON source files (each a
+                      full knowledge pack or a bare {"rows": [...]} array).
+  --export <path>     Deconstruct the named pack to meaning-tree node JSON.
+  --import <path>     Construct the canonical pack from meaning-tree node JSON.
+
+Validation: unknown row kinds fail LOUDLY (non-zero exit, named message);
+corrupted rows are named data on stderr — never a guess. Exit 0 iff
+validation passes. Remote hub distribution is named, not built: the manifest
+is the local seam only.
+
+Examples:
+  ae know rows.json --name harness --concept harness --version 7
+  ae know --export nodes.json --name harness
+  ae know --import nodes.json --name harness
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -1161,6 +1218,8 @@ Examples:
         return _handleArtifact(command);
       case 'spec':
         return _handleSpec(command);
+      case 'know':
+        return _handleKnow(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -2985,6 +3044,410 @@ Examples:
           code: 'invalid_command',
           message: 'Unknown spec subcommand: ${sub.name}',
         );
+    }
+  }
+
+  /// `ae know` — the knowledge-plane command (harness PLAN P3):
+  /// knowledge-at-rest rows (JSON, `ae.knowledge_pack.v1` row shape) →
+  /// validated canonical pack under `.ae_ln/` + local hub manifest, with
+  /// `--export`/`--import` surfacing the wire round trip as CLI verbs.
+  /// LLM-free: the wire contract is the only validator; unknown kinds fail
+  /// loudly, corrupted rows are named data on stderr, never a guess.
+  Future<AeResult<Map<String, dynamic>>> _handleKnow(
+    final ArgResults command,
+  ) async {
+    final name = command['name']?.toString().trim() ?? '';
+    if (name.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required --name (pack id)',
+      );
+    }
+    final root = path.normalize(
+      command['root']?.toString() ?? Directory.current.path,
+    );
+    final lnDir = Directory(path.join(root, '.ae_ln'));
+    final outRaw = command['out']?.toString().trim() ?? '';
+    final fileName = path.basename(
+      outRaw.isNotEmpty ? outRaw : '$name.knowledge_pack.json',
+    );
+    final packFile = File(path.join(lnDir.path, fileName));
+    final manifestFile = File(path.join(lnDir.path, 'hub_manifest.json'));
+    final exportPath = command['export']?.toString().trim() ?? '';
+    final importPath = command['import']?.toString().trim() ?? '';
+
+    if (exportPath.isNotEmpty && importPath.isNotEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: '--export and --import are mutually exclusive',
+      );
+    }
+    if (exportPath.isNotEmpty) {
+      return _knowExport(
+        packFile: packFile,
+        name: name,
+        exportPath: exportPath,
+      );
+    }
+    if (importPath.isNotEmpty) {
+      return _knowImport(
+        packFile: packFile,
+        manifestFile: manifestFile,
+        name: name,
+        importPath: importPath,
+        requestedVersion: command['version']?.toString(),
+      );
+    }
+
+    final sources = command.rest;
+    if (sources.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message:
+            'Missing knowledge source files. Usage: ae know <sources…> '
+            '--name <pack-id>',
+      );
+    }
+    return _knowBuild(
+      command: command,
+      sources: sources,
+      lnDir: lnDir,
+      packFile: packFile,
+      manifestFile: manifestFile,
+      name: name,
+      fileName: fileName,
+    );
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _knowBuild({
+    required final ArgResults command,
+    required final List<String> sources,
+    required final Directory lnDir,
+    required final File packFile,
+    required final File manifestFile,
+    required final String name,
+    required final String fileName,
+  }) async {
+    final nodes = <wire.ExportNode>[];
+    final edges = <wire.ExportEdge>[];
+    final skipped = <Map<String, dynamic>>[];
+    final seenIds = <String>{};
+    String? concept;
+    dynamic version;
+
+    for (final source in sources) {
+      final sourceFile = File(source);
+      if (!await sourceFile.exists()) {
+        return AeResult.fail(
+          code: 'know_source_not_found',
+          message: 'Knowledge source file not found: $source',
+        );
+      }
+      final Map<dynamic, dynamic> decoded;
+      try {
+        decoded = jsonDecode(await sourceFile.readAsString()) as Map;
+      } on FormatException catch (error) {
+        return AeResult.fail(
+          code: 'know_source_invalid',
+          message: 'Knowledge source is not valid JSON: $source',
+          details: {'source': source, 'parse_error': error.message},
+        );
+      }
+      final rawRows = decoded['rows'];
+      if (rawRows is! List) {
+        return AeResult.fail(
+          code: 'know_source_invalid',
+          message:
+              'Knowledge source must be an ae.knowledge_pack.v1 pack or a '
+              '{"rows": [...]} map of rows: $source',
+        );
+      }
+      concept ??= decoded['concept']?.toString();
+      version ??= decoded['version'];
+
+      final wire.KnowledgeDeconstruction deconstruction;
+      try {
+        deconstruction = wire.deconstructKnowledgePack(decoded);
+      } on StateError catch (error) {
+        // The wire fails LOUDLY on unknown kinds — surface verbatim.
+        return AeResult.fail(
+          code: 'know_unknown_kind',
+          message: error.message,
+          details: {'source': source},
+        );
+      }
+      final sourceName = path.basename(source);
+      for (final s in deconstruction.skipped) {
+        skipped.add({'source': sourceName, ...s});
+      }
+      for (final node in deconstruction.tree.nodes) {
+        if (!seenIds.add(node.id)) {
+          skipped.add({
+            'source': sourceName,
+            'id': node.id,
+            'reason': 'duplicate row id across sources',
+          });
+          continue;
+        }
+        nodes.add(node);
+      }
+      edges.addAll(deconstruction.tree.edges);
+    }
+
+    if (skipped.isNotEmpty) {
+      return AeResult.fail(
+        code: 'know_validation_failed',
+        message:
+            '${skipped.length} knowledge row(s) skipped — validation failed, '
+            'no pack written',
+        details: {'skipped': skipped, 'sources': sources.length},
+      );
+    }
+
+    final requestedVersion = command['version']?.toString();
+    final effectiveVersion =
+        (requestedVersion != null && requestedVersion.isNotEmpty)
+            ? requestedVersion
+            : version;
+    final wire.KnowledgeConstruction construction;
+    try {
+      construction = wire.constructKnowledgePack(
+        wire.MeaningTreeExport(
+          nodes: nodes,
+          edges: edges,
+          meta: {
+            if (command['concept']?.toString() case final c? when c.isNotEmpty)
+              'concept': c,
+            if (effectiveVersion != null) 'version': effectiveVersion,
+          },
+        ),
+      );
+    } on StateError catch (error) {
+      return AeResult.fail(
+        code: 'know_construct_failed',
+        message: error.message,
+      );
+    }
+
+    return _writeKnowPack(
+      pack: construction.pack,
+      packFile: packFile,
+      manifestFile: manifestFile,
+      name: name,
+      fileName: fileName,
+      lnDir: lnDir,
+      version: effectiveVersion,
+    );
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _knowExport({
+    required final File packFile,
+    required final String name,
+    required final String exportPath,
+  }) async {
+    if (!await packFile.exists()) {
+      return AeResult.fail(
+        code: 'know_pack_not_found',
+        message: 'No knowledge pack for "$name" at ${packFile.path}',
+      );
+    }
+    final Map<dynamic, dynamic> decoded;
+    try {
+      decoded = jsonDecode(await packFile.readAsString()) as Map;
+    } on FormatException catch (error) {
+      return AeResult.fail(
+        code: 'know_pack_invalid',
+        message: 'Knowledge pack is not valid JSON: ${packFile.path}',
+        details: {'parse_error': error.message},
+      );
+    }
+    final wire.KnowledgeDeconstruction deconstruction;
+    try {
+      deconstruction = wire.deconstructKnowledgePack(decoded);
+    } on StateError catch (error) {
+      return AeResult.fail(
+        code: 'know_unknown_kind',
+        message: error.message,
+      );
+    }
+    if (deconstruction.skipped.isNotEmpty) {
+      return AeResult.fail(
+        code: 'know_validation_failed',
+        message:
+            '${deconstruction.skipped.length} row(s) skipped on export — '
+            'validation failed, no export written',
+        details: {'skipped': deconstruction.skipped},
+      );
+    }
+    final exportFile = File(exportPath);
+    await exportFile.parent.create(recursive: true);
+    await exportFile.writeAsString(jsonEncode(deconstruction.tree.toMap()));
+    return AeResult.ok({
+      'pack': name,
+      'pack_path': packFile.path,
+      'export_path': exportFile.path,
+      'nodes': deconstruction.tree.nodes.length,
+      'edges': deconstruction.tree.edges.length,
+      'skipped': 0,
+    });
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _knowImport({
+    required final File packFile,
+    required final File manifestFile,
+    required final String name,
+    required final String importPath,
+    required final String? requestedVersion,
+  }) async {
+    final importFile = File(importPath);
+    if (!await importFile.exists()) {
+      return AeResult.fail(
+        code: 'know_source_not_found',
+        message: 'Meaning-tree node JSON not found: $importPath',
+      );
+    }
+    final Map<dynamic, dynamic> decoded;
+    try {
+      decoded = jsonDecode(await importFile.readAsString()) as Map;
+    } on FormatException catch (error) {
+      return AeResult.fail(
+        code: 'know_source_invalid',
+        message: 'Meaning-tree node JSON is not valid JSON: $importPath',
+        details: {'parse_error': error.message},
+      );
+    }
+    final wire.KnowledgeConstruction construction;
+    try {
+      construction = wire.constructKnowledgePack(
+        wire.MeaningTreeExport.fromMap(decoded),
+      );
+    } on StateError catch (error) {
+      final unknownKind = error.message.contains('unknown knowledge node kind');
+      return AeResult.fail(
+        code: unknownKind ? 'know_unknown_kind' : 'know_construct_failed',
+        message: error.message,
+      );
+    }
+    if (construction.skipped.isNotEmpty) {
+      return AeResult.fail(
+        code: 'know_validation_failed',
+        message:
+            '${construction.skipped.length} node(s) skipped on import — '
+            'validation failed, no pack written',
+        details: {'skipped': construction.skipped},
+      );
+    }
+    return _writeKnowPack(
+      pack: construction.pack,
+      packFile: packFile,
+      manifestFile: manifestFile,
+      name: name,
+      fileName: path.basename(packFile.path),
+      lnDir: packFile.parent,
+      version: requestedVersion ?? construction.pack['version'],
+    );
+  }
+
+  /// Writes the canonical pack (byte-identical canonical form) and
+  /// emits/updates the LOCAL hub manifest entry (pack id → file hash +
+  /// version). A pre-existing manifest that fails wire validation is a
+  /// loud failure — never silently rebuilt.
+  Future<AeResult<Map<String, dynamic>>> _writeKnowPack({
+    required final Map<String, dynamic> pack,
+    required final File packFile,
+    required final File manifestFile,
+    required final String name,
+    required final String fileName,
+    required final Directory lnDir,
+    required final dynamic version,
+  }) async {
+    final canonicalBytes = utf8.encode(wire.canonicalJsonForm(pack));
+    await lnDir.create(recursive: true);
+    await packFile.writeAsBytes(canonicalBytes, flush: true);
+    final sha256Hex = crypto.sha256.convert(canonicalBytes).toString();
+
+    final entry = <String, dynamic>{
+      'pack': name,
+      'file': fileName,
+      'sha256': sha256Hex,
+      'version': version ?? 1,
+    };
+    final entries = <Map<String, dynamic>>[entry];
+    if (await manifestFile.exists()) {
+      final Map<dynamic, dynamic> existing;
+      try {
+        existing = jsonDecode(await manifestFile.readAsString()) as Map;
+      } on FormatException catch (error) {
+        return AeResult.fail(
+          code: 'know_manifest_invalid',
+          message: 'Existing hub manifest is not valid JSON: '
+              '${manifestFile.path}',
+          details: {'parse_error': error.message},
+        );
+      }
+      final wire.HubManifestValidation validation;
+      try {
+        validation = wire.validateHubManifest(existing);
+      } on StateError catch (error) {
+        return AeResult.fail(
+          code: 'know_manifest_invalid',
+          message: error.message,
+        );
+      }
+      if (!validation.isValid) {
+        return AeResult.fail(
+          code: 'know_manifest_invalid',
+          message:
+              'Existing hub manifest has ${validation.errors.length} invalid '
+              'entr(y/ies) — not rebuilt, fix or delete the manifest',
+          details: {'errors': validation.errors},
+        );
+      }
+      entries.addAll([
+        for (final e in validation.manifest.entries)
+          if (e.pack != name) e.toMap(),
+      ]);
+    }
+    entries.sort((a, b) => (a['pack'] as String).compareTo(b['pack'] as String));
+    final manifestMap = {
+      'schema': wire.hubManifestSchema,
+      'entries': entries,
+    };
+    await manifestFile.writeAsBytes(
+      utf8.encode(wire.canonicalHubManifestForm(manifestMap)),
+      flush: true,
+    );
+
+    return AeResult.ok({
+      'pack': name,
+      'pack_path': packFile.path,
+      'sha256': sha256Hex,
+      'rows': (pack['rows'] as List? ?? const []).length,
+      'manifest_path': manifestFile.path,
+      'manifest_entry': entry,
+    });
+  }
+
+  /// Named data on stderr for `ae know` failures: every skipped row is
+  /// printed as named JSON — never a guess, never silent.
+  void _emitKnowNamedData(final Map<String, dynamic> envelope) {
+    if (envelope['success'] == true) {
+      return;
+    }
+    final error = envelope['error'];
+    if (error is! Map) {
+      return;
+    }
+    final details = error['details'];
+    if (details is! Map) {
+      return;
+    }
+    final skipped = details['skipped'];
+    if (skipped is! List) {
+      return;
+    }
+    for (final s in skipped) {
+      _err.writeln('ae know: skip ${jsonEncode(s)}');
     }
   }
 

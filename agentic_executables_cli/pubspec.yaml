@@ -9,9 +9,12 @@ environment:
 
 dependencies:
   args: ^2.4.2
+  crypto: ^3.0.0
   yaml: ^3.1.0
   agentic_executables_core:
     path: ../agentic_executables_core
+  agentic_executables_wire:
+    path: ../agentic_executables_wire
   path: ^1.8.0
 
 dev_dependencies:

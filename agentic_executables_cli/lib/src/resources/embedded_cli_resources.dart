@@ -255,7 +255,7 @@ name: ae-cli
 description: Execute Agentic Executables (AE) workflows through the `ae` CLI — AE 3.x canonical/artifact verification (spec import, code extraction from any language, distill delegation), plus framework definition, lifecycle file generation, quality gates, registry operations, and skill install/update. Use when working with AE hubs, canonical or artifact packs, knowledge packs, or ae_* commands.
 ---
 
-<!-- ae-cli-skill-version: 1.5.0 -->
+<!-- ae-cli-skill-version: 1.6.0 -->
 
 # ae-cli
 
@@ -271,7 +271,7 @@ Use this skill to execute Agentic Executables workflows through the `ae` CLI.
 ## Quick Decision Flow
 
 1. Setting up a project hub? `ae hub init --project`, then `ae init`.
-2. Have an existing spec (Spec Kit / ADR / markdown)? `ae canonical import-spec`.
+2. Have an existing document (roadmap / strategy / ADR / markdown)? `ae canonical import-spec`.
 3. Need a spec FROM code? `ae canonical scaffold --from-artifact <pack>`.
 4. Need LLM-quality enrichment? Run the distill delegation loop (below) — you are the executor.
 5. Code changed? `ae sync` then `ae artifact verify`.
@@ -283,7 +283,7 @@ Use this skill to execute Agentic Executables workflows through the `ae` CLI.
 ```bash
 ae hub init --project                                   # create .ae_hub/
 ae init                                                 # extract packages -> artifacts (Dart/Rust/Kotlin-Swift)
-ae canonical import-spec --from spec.md --concept <id>  # OR: canonical scaffold --from-artifact <pack>
+ae canonical import-spec --from vision.md --concept <id> --format document  # OR: canonical scaffold --from-artifact <pack>
 ae artifact link --pack <pack> --canonical <id>         # attach realization to contract
 ae artifact verify --pack <pack>                        # tiered gaps: T1 invariant violations, T2 blockers
 ae status                                               # project-wide cockpit
@@ -318,7 +318,7 @@ ae init [--strict]
 ae status [--tier N]
 ae sync [--prune]
 ae canonical init --concept <slug> --title <text>
-ae canonical import-spec --from <file.md> --concept <slug> [--format auto]
+ae canonical import-spec --from <file.md> --concept <slug> [--format auto|document]
 ae canonical scaffold --concept <slug> --title <t> --from-artifact <pack>
 ae canonical scaffold --update --concept <slug>
 ae canonical list
@@ -335,6 +335,11 @@ ae artifact verify --pack <name> [--strict] [--run-tests]
 ae artifact mark-evidence --pack <name> --feature <id> --test-command <cmd> [--location <path>] [--impl <status>] [--notes <text>]
 ae artifact upgrade-canonical --pack <name> --canonical <id> --to vN
 ae spec export --out <dir>
+
+# --- Knowledge plane (LLM-free; packs under .ae_ln/ + local hub manifest) ---
+ae know <sources.json…> --name <id> [--concept <c>] [--version <v>]  # validate rows → canonical pack
+ae know --export <nodes.json> --name <id>   # canonical pack → meaning-tree node JSON
+ae know --import <nodes.json> --name <id>   # meaning-tree node JSON → canonical pack
 
 # --- Lifecycle / registry (v2 carry-over) ---
 ae definition
@@ -373,9 +378,9 @@ ae skill install
 3. Merge, link to a realization pack, accept cross-cutting concepts.
    Works for any language: unknown ones go through the generic extractor.
 
-### Import an external spec (Spec Kit / ADR)
+### Import an external document
 
-1. `ae canonical import-spec --from specs/<name>.spec.md --concept <slug> --title "<Title>"`
+1. `ae canonical import-spec --from docs/vision.md --concept <slug> --title "<Title>" --format document`
 2. `ae artifact link --pack <pack> --canonical <slug>`
 3. Record evidence via `ae artifact mark-evidence` (not hand-edited YAML)
 4. `ae artifact verify --pack <pack> --run-tests`

@@ -9,6 +9,15 @@
 /// materializes span-anchored patches from the meaning tree (file+line per
 /// symbol) and verifies mechanically with auto-revert (ADR 0021 tier).
 ///
+/// The `authored_body` kind is the TRUSTED-AUTHOR tier: the body text is
+/// authored by a trusted source (a human, or a verified host session),
+/// CONSENTED at pack-write via the unified-diff review gate — never by the
+/// model. The model applies it via `apply_executable` at zero authored
+/// tokens; the host still runs the same fences (coverage + integration),
+/// the free oracles, and auto-revert. The consent IS the expressiveness
+/// fence for this kind: a human decision, not model composition, vouches
+/// for the body leaving the closed op vocabulary.
+///
 /// Layering rule: this wire is SYNTAX-ONLY and zero-dep. AE owns the
 /// semantics (where executables come from); hosts own realizations (the
 /// span editor, the R6 op-chain compiler). The materializer spec names its
@@ -106,7 +115,27 @@ enum EditExecutableKind {
   insertMember('insert_member'),
   replaceMemberBody('replace_member_body'),
   deleteMember('delete_member'),
-  moveMember('move_member');
+  moveMember('move_member'),
+
+  /// Trusted-author tier: a fixed, consented-at-pack-write body text the
+  /// host splices into a covered member. The body travels with the PACK
+  /// (data, like the op-chain of `replace_member_body`), never on the wire
+  /// and never from the model.
+  authoredBody('authored_body'),
+
+  /// Structural class-shape pack kinds (trusted-author tier): the pack
+  /// declares the SPEC as data — for `add_constructor_param`: the class
+  /// symbol id, the param name/type, whether it is optional and its
+  /// default, and which constructor (named or the unnamed one); for
+  /// `add_enum_case`: the enum symbol id, the case name and optional
+  /// const args. The HOST splices the constructor signature, the backing
+  /// field and (when required) the initializer — or the enum case —
+  /// byte-precisely, fence-resolved, analyzer-oracle verified with
+  /// auto-revert. Consent is SEPARATE from the pack: registration is
+  /// free, application refuses without a wired consent approver
+  /// (deny-by-default).
+  addConstructorParam('add_constructor_param'),
+  addEnumCase('add_enum_case');
 
   const EditExecutableKind(this.wire);
   final String wire;

@@ -15,7 +15,14 @@ packages:
       path: "../agentic_executables_core"
       relative: true
     source: path
-    version: "3.0.0"
+    version: "3.2.0"
+  agentic_executables_wire:
+    dependency: "direct main"
+    description:
+      path: "../agentic_executables_wire"
+      relative: true
+    source: path
+    version: "0.1.0"
   analyzer:
     dependency: transitive
     description:
@@ -81,7 +88,7 @@ packages:
     source: hosted
     version: "1.15.0"
   crypto:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
